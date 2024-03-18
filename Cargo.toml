@@ -6,3 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+clap = { version = "4.5.2", features = ["derive"] }
+window_rs = {git = "https://github.com/NoodleSamaChan/window_rs"}
+minifb = "0.25.0"
+
+
+[dev-dependencies]
+proptest = "1.4.0"
+insta = "1.36.1"
