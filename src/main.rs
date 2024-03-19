@@ -89,6 +89,7 @@ impl World {
 
                 if (self.window_buffer[(x, y)] == rgb(0, 0, u8::MAX)) && (self.window_buffer[(x, y)] == self.window_buffer[(food_coordinates.0, food_coordinates.1)]) {
                         self.window_buffer[(food_coordinates.0, food_coordinates.1)] = rgb(0, 0, u8::MAX);
+                        self.food_generator();
                 }
             }
         }
@@ -157,7 +158,7 @@ impl World {
                                 next_iteration[(x as usize, y as usize)] = rgb(0, u8::MAX, 0)
                                 
                             }
-                        }
+                        } 
                     },
                     Direction::South => {
                         if self.window_buffer.get(x, y + 1) != None {
