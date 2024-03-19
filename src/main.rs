@@ -1,10 +1,10 @@
 use clap::Parser;
-use minifb::{Key, KeyRepeat, MouseButton, MouseMode, Window, WindowOptions};
+use minifb::{Key, KeyRepeat, Window, WindowOptions};
 use rand::Rng;
-use std::fmt;
 use std::fs::File;
 use std::io::{Read, Write};
 use window_rs::WindowBuffer;
+use std::time::{Instant, Duration};
 
 //CLI
 #[derive(Parser, Debug)]
@@ -38,7 +38,7 @@ pub fn rgb(red: u8, green: u8, blue: u8) -> u32 {
 //COLOURS MANAGEMENT END
 
 #[derive(PartialEq)]
-enum Direction {
+pub enum Direction {
     North,
     East,
     West,
@@ -59,14 +59,14 @@ impl World {
         }
     }
 
-    pub fn food_generator(&mut self) -> (usize, usize) {
+    pub fn food_generator(&mut self) -> Option<(usize, usize)> {
         loop {
             let x = rand::thread_rng().gen_range(0..self.window_buffer.width());
             let y = rand::thread_rng().gen_range(0..self.window_buffer.height());
 
             if self.window_buffer[(x, y)] == 0 {
                 self.window_buffer[(x, y)] = rgb(0, u8::MAX, 0);
-                return (x, y);
+                return Some((x, y));
             }
         }
     }
@@ -81,7 +81,17 @@ impl World {
     }
 
     pub fn snake_update(&mut self, food_coordinates: (usize, usize)) {
-        self.window_buffer[(food_coordinates.0, food_coordinates.1)] = rgb(0, 0, u8::MAX);
+
+        for x in 0..self.window_buffer.width() {
+            for y in 0..self.window_buffer.height() {
+                let x = x;
+                let y = y;
+
+                if (self.window_buffer[(x, y)] == rgb(0, 0, u8::MAX)) && (self.window_buffer[(x, y)] == self.window_buffer[(food_coordinates.0, food_coordinates.1)]) {
+                        self.window_buffer[(food_coordinates.0, food_coordinates.1)] = rgb(0, 0, u8::MAX);
+                }
+            }
+        }
     }
 
     pub fn handle_user_input(&mut self, window: &Window, cli: &Cli) -> std::io::Result<()> {
@@ -97,7 +107,7 @@ impl World {
             }
             save_file.write_all(&self.window_buffer.width().to_be_bytes())?;
             save_file.write_all(&self.window_buffer.height().to_be_bytes())?;
-            save_file.write_all(&self.speed().to_be_bytes())?;
+            //save_file.write_all(&self.speed().to_be_bytes())?;
 
             for number in &self.window_buffer.buffer() {
                 save_file.write_all(&number.to_be_bytes())?;
@@ -107,19 +117,23 @@ impl World {
         }
 
         if window.is_key_pressed(Key::Up, KeyRepeat::No) {
-            self.direction = Direction::North
+            self.direction = Direction::North;
+            self.direction();
         }
 
         if window.is_key_pressed(Key::Down, KeyRepeat::No) {
-            self.direction = Direction::South
+            self.direction = Direction::South;
+            self.direction();
         }
 
         if window.is_key_pressed(Key::Left, KeyRepeat::No) {
-            self.direction = Direction::West
+            self.direction = Direction::West;
+            self.direction();
         }
 
         if window.is_key_pressed(Key::Right, KeyRepeat::No) {
-            self.direction = Direction::East
+            self.direction = Direction::East;
+            self.direction();
         }
 
         Ok(())
@@ -136,30 +150,42 @@ impl World {
 
                 match self.direction {
                     Direction::North => {
-                        if self.window_buffer.get(x, y + 1) != None {
+                        if self.window_buffer.get(x, y - 1) != None {
                             if self.window_buffer[(x as usize, y as usize)] == rgb(0, 0, u8::MAX) {
-                                next_iteration[(x as usize, y as usize + 1)] = rgb(0, 0, u8::MAX)
+                                next_iteration[(x as usize, y as usize - 1)] = rgb(0, 0, u8::MAX)
+                            } else if self.window_buffer[(x as usize, y as usize)] == rgb(0, u8::MAX, 0) {
+                                next_iteration[(x as usize, y as usize)] = rgb(0, u8::MAX, 0)
+                                
                             }
                         }
                     },
                     Direction::South => {
-                        if self.window_buffer.get(x, y - 1) != None {
+                        if self.window_buffer.get(x, y + 1) != None {
                             if self.window_buffer[(x as usize, y as usize)] == rgb(0, 0, u8::MAX) {
-                                next_iteration[(x as usize, y as usize - 1)] = rgb(0, 0, u8::MAX)
+                                next_iteration[(x as usize, y as usize + 1)] = rgb(0, 0, u8::MAX)
+                            } else if self.window_buffer[(x as usize, y as usize)] == rgb(0, u8::MAX, 0) {
+                                next_iteration[(x as usize, y as usize)] = rgb(0, u8::MAX, 0)
+                                
                             }
                         }
                     },
                     Direction::East => {
                         if self.window_buffer.get(x + 1, y) != None {
                             if self.window_buffer[(x as usize, y as usize)] == rgb(0, 0, u8::MAX) {
-                                next_iteration[(x as usize + 1, y as usize - 1)] = rgb(0, 0, u8::MAX)
+                                next_iteration[(x as usize + 1, y as usize)] = rgb(0, 0, u8::MAX)
+                            } else if self.window_buffer[(x as usize, y as usize)] == rgb(0, u8::MAX, 0) {
+                                next_iteration[(x as usize, y as usize)] = rgb(0, u8::MAX, 0)
+                                
                             }
                         }
                     },
                     Direction::West => {
                         if self.window_buffer.get(x - 1, y) != None {
                             if self.window_buffer[(x as usize, y as usize)] == rgb(0, 0, u8::MAX) {
-                                next_iteration[(x as usize - 1, y as usize - 1)] = rgb(0, 0, u8::MAX)
+                                next_iteration[(x as usize - 1, y as usize)] = rgb(0, 0, u8::MAX)
+                            } else if self.window_buffer[(x as usize, y as usize)] == rgb(0, u8::MAX, 0) {
+                                next_iteration[(x as usize, y as usize)] = rgb(0, u8::MAX, 0)
+                                
                             }
                         }
                     }
@@ -222,8 +248,25 @@ fn main() -> std::io::Result<()> {
 
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
+    let _ = buffer.snake_generator();
+    let mut food_generation = buffer.food_generator();
+    let mut instant = Instant::now();
+
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        todo!();
+        let _ = buffer.handle_user_input(&window, &cli);
+        let two_seconds = Duration::from_secs(1);
+
+        if instant.elapsed() >= two_seconds {
+            buffer.snake_update(food_generation.unwrap());
+            instant = Instant::now();
+            if food_generation == None {
+                food_generation = buffer.food_generator();
+            }
+        }
+
+        if food_generation == None {
+            food_generation = buffer.food_generator();
+        }
 
         window
             .update_with_buffer(&buffer.window_buffer.buffer(), cli.width, cli.height)
