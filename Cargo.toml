@@ -9,6 +9,7 @@ edition = "2021"
 clap = { version = "4.5.2", features = ["derive"] }
 window_rs = {git = "https://github.com/NoodleSamaChan/window_rs"}
 minifb = "0.25.0"
+rand = "0.8.5"
 
 
 [dev-dependencies]
