@@ -1,6 +1,7 @@
 use clap::Parser;
 use minifb::{Key, KeyRepeat, Window, WindowOptions};
 use rand::Rng;
+use std::clone;
 use std::fs::File;
 use std::io::{Read, Write};
 use window_rs::WindowBuffer;
@@ -47,39 +48,108 @@ pub enum Direction {
 
 //WORLD CREATION
 pub struct World {
-    window_buffer: WindowBuffer,
     direction: Direction,
+    snake: Vec<(usize, usize)>,
+    food: (usize, usize),
+    finished: bool,
 }
 
 impl World {
-    pub fn new(window_buffer: WindowBuffer, direction: Direction) -> Self {
+    pub fn new(direction: Direction, snake: Vec<(usize, usize)>, food: (usize, usize), finished: bool) -> Self {
         Self {
-            window_buffer,
             direction,
+            snake,
+            food,
+            finished,
         }
     }
 
-    pub fn food_generator(&mut self) -> Option<(usize, usize)> {
+    pub fn food_generator(&mut self, buffer: &WindowBuffer){
         loop {
-            let x = rand::thread_rng().gen_range(0..self.window_buffer.width());
-            let y = rand::thread_rng().gen_range(0..self.window_buffer.height());
+            let x = rand::thread_rng().gen_range(0..buffer.width());
+            let y = rand::thread_rng().gen_range(0..buffer.height());
 
-            if self.window_buffer[(x, y)] == 0 {
-                self.window_buffer[(x, y)] = rgb(0, u8::MAX, 0);
-                return Some((x, y));
+            let mut checker = self.snake.iter().any(|(a, b)| (a, b) == (&x, &y));
+
+            if checker == true {
+                continue
+            } else {
+                self.food = (x, y);
+                println!("food generated");
+                return;
             }
         }
     }
 
-    pub fn snake_generator(&mut self) {
-        let x_middle_point = self.window_buffer.width() / 2;
-        let y_middle_point = self.window_buffer.height() / 2;
+    pub fn snake_generator(&mut self, buffer: &WindowBuffer) {
+        let x_middle_point = buffer.width() / 2;
+        let y_middle_point = buffer.height() / 2;
 
-        self.window_buffer[(x_middle_point, y_middle_point)] = rgb(0, 0, u8::MAX);
-        self.window_buffer[(x_middle_point - 1, y_middle_point)] = rgb(0, 0, u8::MAX);
-        self.window_buffer[(x_middle_point - 2, y_middle_point)] = rgb(0, 0, u8::MAX);
+        self.snake.push((x_middle_point - 2, y_middle_point));
+        self.snake.push((x_middle_point - 1, y_middle_point));
+        self.snake.push((x_middle_point, y_middle_point));
+        println!("snake generated");
     }
 
+    pub fn display(& self, buffer: &mut WindowBuffer) {
+
+        self.snake.iter().for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(0, 0, u8::MAX));
+        
+        for x in 0..buffer.width(){
+            for y in 0..buffer.height(){
+                if (x, y) == (self.food.0, self.food.1) {
+                    buffer[(x, y)] = rgb(0, u8::MAX, 0);
+                    println!("color changed");
+                }
+            }
+        }
+    }
+
+    pub fn handle_user_input(&mut self, window: &Window, cli: &Cli, buffer: &mut WindowBuffer) -> std::io::Result<()> {
+        if window.is_key_pressed(Key::Q, KeyRepeat::No) {
+            buffer.reset();
+        }
+
+        if window.is_key_pressed(Key::S, KeyRepeat::No) {
+            let mut save_file = File::create("save_file")?;
+
+            if cli.file_path != None {
+                save_file = File::create(cli.file_path.clone().unwrap())?;
+            }
+            save_file.write_all(&buffer.width().to_be_bytes())?;
+            save_file.write_all(&buffer.height().to_be_bytes())?;
+            //save_file.write_all(&self.speed().to_be_bytes())?;
+
+            for number in &buffer.buffer() {
+                save_file.write_all(&number.to_be_bytes())?;
+            }
+
+            save_file.flush()?;
+        }
+
+        if window.is_key_pressed(Key::Up, KeyRepeat::No) {
+            self.direction = Direction::North;
+            self.direction(buffer);
+        }
+
+        if window.is_key_pressed(Key::Down, KeyRepeat::No) {
+            self.direction = Direction::South;
+            self.direction(buffer);
+        }
+
+        if window.is_key_pressed(Key::Left, KeyRepeat::No) {
+            self.direction = Direction::West;
+            self.direction(buffer);
+        }
+
+        if window.is_key_pressed(Key::Right, KeyRepeat::No) {
+            self.direction = Direction::East;
+            self.direction(buffer);
+        }
+
+        Ok(())
+    }
+/* 
     pub fn snake_update(&mut self, food_coordinates: (usize, usize)) {
 
         for x in 0..self.window_buffer.width() {
@@ -93,118 +163,69 @@ impl World {
                 }
             }
         }
-    }
+    }*/
 
-    pub fn handle_user_input(&mut self, window: &Window, cli: &Cli) -> std::io::Result<()> {
-        if window.is_key_pressed(Key::Q, KeyRepeat::No) {
-            self.window_buffer.reset();
-        }
+    pub fn direction(&mut self, buffer: &mut WindowBuffer) {
+        let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
 
-        if window.is_key_pressed(Key::S, KeyRepeat::No) {
-            let mut save_file = File::create("save_file")?;
-
-            if cli.file_path != None {
-                save_file = File::create(cli.file_path.clone().unwrap())?;
-            }
-            save_file.write_all(&self.window_buffer.width().to_be_bytes())?;
-            save_file.write_all(&self.window_buffer.height().to_be_bytes())?;
-            //save_file.write_all(&self.speed().to_be_bytes())?;
-
-            for number in &self.window_buffer.buffer() {
-                save_file.write_all(&number.to_be_bytes())?;
-            }
-
-            save_file.flush()?;
-        }
-
-        if window.is_key_pressed(Key::Up, KeyRepeat::No) {
-            self.direction = Direction::North;
-            self.direction();
-        }
-
-        if window.is_key_pressed(Key::Down, KeyRepeat::No) {
-            self.direction = Direction::South;
-            self.direction();
-        }
-
-        if window.is_key_pressed(Key::Left, KeyRepeat::No) {
-            self.direction = Direction::West;
-            self.direction();
-        }
-
-        if window.is_key_pressed(Key::Right, KeyRepeat::No) {
-            self.direction = Direction::East;
-            self.direction();
-        }
-
-        Ok(())
-    }
-
-    pub fn direction(&mut self) {
-        let mut next_iteration =
-            WindowBuffer::new(self.window_buffer.width(), self.window_buffer.height());
-
-        for x in 0..self.window_buffer.width() {
-            for y in 0..self.window_buffer.height() {
+        for x in 0..buffer.width() {
+            for y in 0..buffer.height() {
                 let x = x as isize;
                 let y = y as isize;
 
                 match self.direction {
                     Direction::North => {
-                        if self.window_buffer.get(x, y - 1) != None {
-                            if self.window_buffer[(x as usize, y as usize)] == rgb(0, 0, u8::MAX) {
-                                next_iteration[(x as usize, y as usize - 1)] = rgb(0, 0, u8::MAX)
-                            } else if self.window_buffer[(x as usize, y as usize)] == rgb(0, u8::MAX, 0) {
-                                next_iteration[(x as usize, y as usize)] = rgb(0, u8::MAX, 0)
-                                
+                        if buffer.get(x, y - 1) != None {
+                            if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
+                                reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                reversed_vector.push((x as usize, y as usize - 1));
                             }
                         } 
                     },
                     Direction::South => {
-                        if self.window_buffer.get(x, y + 1) != None {
-                            if self.window_buffer[(x as usize, y as usize)] == rgb(0, 0, u8::MAX) {
-                                next_iteration[(x as usize, y as usize + 1)] = rgb(0, 0, u8::MAX)
-                            } else if self.window_buffer[(x as usize, y as usize)] == rgb(0, u8::MAX, 0) {
-                                next_iteration[(x as usize, y as usize)] = rgb(0, u8::MAX, 0)
-                                
+                        if buffer.get(x, y + 1) != None {
+                            if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
+                                reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                reversed_vector.push((x as usize, y as usize + 1));
                             }
                         }
                     },
                     Direction::East => {
-                        if self.window_buffer.get(x + 1, y) != None {
-                            if self.window_buffer[(x as usize, y as usize)] == rgb(0, 0, u8::MAX) {
-                                next_iteration[(x as usize + 1, y as usize)] = rgb(0, 0, u8::MAX)
-                            } else if self.window_buffer[(x as usize, y as usize)] == rgb(0, u8::MAX, 0) {
-                                next_iteration[(x as usize, y as usize)] = rgb(0, u8::MAX, 0)
-                                
+                        if buffer.get(x + 1, y) != None {
+                            if buffer.get(x + 1, y) != None {
+                                if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
+                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                    reversed_vector.push((x as usize + 1, y as usize));
+                                }
                             }
                         }
                     },
                     Direction::West => {
-                        if self.window_buffer.get(x - 1, y) != None {
-                            if self.window_buffer[(x as usize, y as usize)] == rgb(0, 0, u8::MAX) {
-                                next_iteration[(x as usize - 1, y as usize)] = rgb(0, 0, u8::MAX)
-                            } else if self.window_buffer[(x as usize, y as usize)] == rgb(0, u8::MAX, 0) {
-                                next_iteration[(x as usize, y as usize)] = rgb(0, u8::MAX, 0)
-                                
+                        if buffer.get(x - 1, y) != None {
+                            if buffer.get(x - 1, y) != None {
+                                if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
+                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                    reversed_vector.push((x as usize - 1, y as usize));
+                                }
                             }
                         }
                     }
                 }
             }
         }
-        self.window_buffer = next_iteration;
-    }
+    self.snake = reversed_vector;
+    buffer.reset()
+    } 
 }
 //WORLD CREATION END
 
 fn main() -> std::io::Result<()> {
     let cli = Cli::parse();
 
-    let mut buffer = World::new(WindowBuffer::new(cli.width, cli.height), Direction::East);
+    let mut buffer: WindowBuffer = WindowBuffer::new(cli.width, cli.height);
 
     if cli.file_path != None {
-        buffer.window_buffer.reset();
+        buffer.reset();
 
         let mut save_file = File::open(cli.file_path.clone().unwrap())?;
 
@@ -226,18 +247,18 @@ fn main() -> std::io::Result<()> {
 
         let mut saved_chunk_2: [u8; 4] = [0; 4];
 
-        for y in 0..buffer.window_buffer.height() {
-            for x in 0..buffer.window_buffer.width() {
+        for y in 0..buffer.height() {
+            for x in 0..buffer.width() {
                 save_file.read_exact(&mut saved_chunk_2)?;
-                buffer.window_buffer[(x, y)] = u32::from_be_bytes(saved_chunk_2)
+                buffer[(x, y)] = u32::from_be_bytes(saved_chunk_2)
             }
         }
     }
 
     let mut window = Window::new(
         "Test - ESC to exit",
-        buffer.window_buffer.width(),
-        buffer.window_buffer.height(),
+        buffer.width(),
+        buffer.height(),
         WindowOptions {
             scale: minifb::Scale::X8,
             ..WindowOptions::default()
@@ -249,28 +270,21 @@ fn main() -> std::io::Result<()> {
 
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
-    let _ = buffer.snake_generator();
-    let mut food_generation = buffer.food_generator();
+    let mut game_elements: World = World::new(Direction::North, Vec::new(), (0, 0), false);
+    game_elements.snake_generator(&buffer);
+    game_elements.food_generator(&buffer);
+
     let mut instant = Instant::now();
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        let _ = buffer.handle_user_input(&window, &cli);
+        let _ = game_elements.handle_user_input(&window, &cli, &mut buffer);
         let two_seconds = Duration::from_secs(1);
 
-        if instant.elapsed() >= two_seconds {
-            buffer.snake_update(food_generation.unwrap());
-            instant = Instant::now();
-            if food_generation == None {
-                food_generation = buffer.food_generator();
-            }
-        }
-
-        if food_generation == None {
-            food_generation = buffer.food_generator();
-        }
+        game_elements.display(&mut buffer);
+        println!("lunaaaaa");
 
         window
-            .update_with_buffer(&buffer.window_buffer.buffer(), cli.width, cli.height)
+            .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
             .unwrap();
     }
 
