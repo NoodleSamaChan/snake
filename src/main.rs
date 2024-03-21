@@ -69,13 +69,12 @@ impl World {
             let x = rand::thread_rng().gen_range(0..buffer.width());
             let y = rand::thread_rng().gen_range(0..buffer.height());
 
-            let mut checker = self.snake.iter().any(|(a, b)| (a, b) == (&x, &y));
+            let checker = self.snake.iter().any(|(a, b)| (a, b) == (&x, &y));
 
             if checker == true {
                 continue
             } else {
                 self.food = (x, y);
-                println!("food generated");
                 return;
             }
         }
@@ -88,7 +87,6 @@ impl World {
         self.snake.push((x_middle_point - 2, y_middle_point));
         self.snake.push((x_middle_point - 1, y_middle_point));
         self.snake.push((x_middle_point, y_middle_point));
-        println!("snake generated");
     }
 
     pub fn display(& self, buffer: &mut WindowBuffer) {
@@ -97,9 +95,8 @@ impl World {
         
         for x in 0..buffer.width(){
             for y in 0..buffer.height(){
-                if (x, y) == (self.food.0, self.food.1) {
+                if (x, y) == (self.food.0, self.food.1) && self.snake[self.snake.len() - 1] != (x, y) {
                     buffer[(x, y)] = rgb(0, u8::MAX, 0);
-                    println!("color changed");
                 }
             }
         }
@@ -149,21 +146,79 @@ impl World {
 
         Ok(())
     }
-/* 
-    pub fn snake_update(&mut self, food_coordinates: (usize, usize)) {
 
-        for x in 0..self.window_buffer.width() {
-            for y in 0..self.window_buffer.height() {
-                let x = x;
-                let y = y;
+    pub fn snake_update(&mut self, buffer: &mut WindowBuffer) {
 
-                if (self.window_buffer[(x, y)] == rgb(0, 0, u8::MAX)) && (self.window_buffer[(x, y)] == self.window_buffer[(food_coordinates.0, food_coordinates.1)]) {
-                        self.window_buffer[(food_coordinates.0, food_coordinates.1)] = rgb(0, 0, u8::MAX);
-                        self.food_generator();
+        if self.snake[self.snake.len() - 1] == self.food {
+            let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
+
+            for x in 0..buffer.width() {
+                for y in 0..buffer.height() {
+                    let x = x as isize;
+                    let y = y as isize;
+
+                    match self.direction {
+                        Direction::North => {
+                            if buffer.get(x, y - 1) != None {
+                                if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
+
+                                    self.snake.push((x as usize, y as usize));
+                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                                    reversed_vector.push((x as usize, y as usize - 1));
+
+                                    self.food_generator(&buffer);
+                                }
+                            } 
+                        },
+                        Direction::South => {
+                            if buffer.get(x, y + 1) != None {
+                                if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
+                                    self.snake.push((x as usize, y as usize));
+                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                                    reversed_vector.push((x as usize, y as usize + 1));
+
+                                    self.food_generator(&buffer);
+                                }
+                            }
+                        },
+                        Direction::East => {
+                            if buffer.get(x + 1, y) != None {
+                                if buffer.get(x + 1, y) != None {
+                                    if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
+                                        self.snake.push((x as usize, y as usize));
+                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                                    reversed_vector.push((x as usize + 1, y as usize));
+
+                                    self.food_generator(&buffer);
+                                    }
+                                }
+                            }
+                        },
+                        Direction::West => {
+                            if buffer.get(x - 1, y) != None {
+                                if buffer.get(x - 1, y) != None {
+                                    if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
+                                        self.snake.push((x as usize, y as usize));
+                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                                    reversed_vector.push((x as usize - 1, y as usize));
+
+                                    self.food_generator(&buffer);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
+            self.snake = reversed_vector;
+            buffer.reset()
+
         }
-    }*/
+    }
 
     pub fn direction(&mut self, buffer: &mut WindowBuffer) {
         let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
@@ -178,6 +233,7 @@ impl World {
                         if buffer.get(x, y - 1) != None {
                             if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
                                 reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                reversed_vector = reversed_vector.into_iter().rev().collect();
                                 reversed_vector.push((x as usize, y as usize - 1));
                             }
                         } 
@@ -186,6 +242,7 @@ impl World {
                         if buffer.get(x, y + 1) != None {
                             if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
                                 reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                reversed_vector = reversed_vector.into_iter().rev().collect();
                                 reversed_vector.push((x as usize, y as usize + 1));
                             }
                         }
@@ -195,6 +252,7 @@ impl World {
                             if buffer.get(x + 1, y) != None {
                                 if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
                                     reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                    reversed_vector = reversed_vector.into_iter().rev().collect();
                                     reversed_vector.push((x as usize + 1, y as usize));
                                 }
                             }
@@ -205,6 +263,7 @@ impl World {
                             if buffer.get(x - 1, y) != None {
                                 if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
                                     reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
+                                    reversed_vector = reversed_vector.into_iter().rev().collect();
                                     reversed_vector.push((x as usize - 1, y as usize));
                                 }
                             }
@@ -289,4 +348,596 @@ fn main() -> std::io::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use insta::{assert_debug_snapshot, assert_snapshot};
+    use proptest::bits::BitSetLike;
+
+    #[test]
+    fn test_rgb() {
+        assert_eq!(rgb(0, 0, 0), 0x00_00_00_00);
+        assert_eq!(rgb(255, 255, 255), 0x00_ff_ff_ff);
+        assert_eq!(rgb(0x12, 0x34, 0x56), 0x00_12_34_56);
+    }
+
+    #[test]
+    fn snake_moves_east() {
+        let mut buffer: WindowBuffer = WindowBuffer::new(8, 6);
+        let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false);
+        game_elements.snake_generator(&buffer);
+        game_elements.display(&mut buffer);
+
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ........
+        ........
+        ..###...
+        ........
+        ........
+        "###
+        );
+
+        assert_debug_snapshot!(
+            game_elements.snake, 
+        @r###"
+        [
+            (
+                2,
+                3,
+            ),
+            (
+                3,
+                3,
+            ),
+            (
+                4,
+                3,
+            ),
+        ]
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ........
+        ........
+        ...###..
+        ........
+        ........
+        "###
+        );
+
+        assert_debug_snapshot!(
+            game_elements.snake, 
+            @r###"
+        [
+            (
+                3,
+                3,
+            ),
+            (
+                4,
+                3,
+            ),
+            (
+                5,
+                3,
+            ),
+        ]
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ........
+        ........
+        ....###.
+        ........
+        ........
+        "###
+        );
+        assert_debug_snapshot!(
+            game_elements.snake, 
+            @r###"
+        [
+            (
+                4,
+                3,
+            ),
+            (
+                5,
+                3,
+            ),
+            (
+                6,
+                3,
+            ),
+        ]
+        "###
+        );
+
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ........
+        ........
+        .....###
+        ........
+        ........
+        "###
+        );
+        assert_debug_snapshot!(
+            game_elements.snake, 
+            @r###"
+        [
+            (
+                5,
+                3,
+            ),
+            (
+                6,
+                3,
+            ),
+            (
+                7,
+                3,
+            ),
+        ]
+        "###
+        );
+    }
+
+    #[test]
+    fn snake_moves_north() {
+        let mut buffer: WindowBuffer = WindowBuffer::new(8, 8);
+        let mut game_elements: World = World::new(Direction::North, Vec::new(), (0, 0), false);
+        game_elements.snake_generator(&buffer);
+        game_elements.display(&mut buffer);
+
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ........
+        ........
+        ........
+        ..###...
+        ........
+        ........
+        ........
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ........
+        ........
+        ....#...
+        ...##...
+        ........
+        ........
+        ........
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ........
+        ....#...
+        ....#...
+        ....#...
+        ........
+        ........
+        ........
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ....#...
+        ....#...
+        ....#...
+        ........
+        ........
+        ........
+        ........
+        "###
+        );
+    }
+
+    #[test]
+    fn snake_moves_south() {
+        let mut buffer: WindowBuffer = WindowBuffer::new(8, 8);
+        let mut game_elements: World = World::new(Direction::South, Vec::new(), (0, 0), false);
+        game_elements.snake_generator(&buffer);
+        game_elements.display(&mut buffer);
+
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ........
+        ........
+        ........
+        ..###...
+        ........
+        ........
+        ........
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ........
+        ........
+        ........
+        ...##...
+        ....#...
+        ........
+        ........
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ........
+        ........
+        ........
+        ....#...
+        ....#...
+        ....#...
+        ........
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.......
+        ........
+        ........
+        ........
+        ........
+        ....#...
+        ....#...
+        ....#...
+        "###
+        );
+    }
+
+    #[test]
+    fn snake_moves_west() {
+        let mut buffer: WindowBuffer = WindowBuffer::new(10, 8);
+        let mut game_elements: World = World::new(Direction::West, Vec::new(), (0, 0), false);
+        game_elements.snake_generator(&buffer);
+        game_elements.display(&mut buffer);
+
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.........
+        ..........
+        ..........
+        ..........
+        ...###....
+        ..........
+        ..........
+        ..........
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.........
+        ..........
+        ..........
+        ..........
+        ....##....
+        ..........
+        ..........
+        ..........
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.........
+        ..........
+        ..........
+        ..........
+        ...###....
+        ..........
+        ..........
+        ..........
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.........
+        ..........
+        ..........
+        ..........
+        ..###.....
+        ..........
+        ..........
+        ..........
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.........
+        ..........
+        ..........
+        ..........
+        .###......
+        ..........
+        ..........
+        ..........
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        #.........
+        ..........
+        ..........
+        ..........
+        ###.......
+        ..........
+        ..........
+        ..........
+        "###
+        );
+    }
+
+    #[test]
+    fn snake_eats() {
+        let mut buffer: WindowBuffer = WindowBuffer::new(13, 3);
+        let mut game_elements: World = World::new(Direction::East, Vec::new(), (8, 1), false);
+        game_elements.snake_generator(&buffer);
+        game_elements.display(&mut buffer);
+        game_elements.snake_update(&mut buffer);
+
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        .............
+        ....###.#....
+        .............
+        "###
+        );
+
+        assert_debug_snapshot!(
+            game_elements.snake, 
+        @r###"
+        [
+            (
+                4,
+                1,
+            ),
+            (
+                5,
+                1,
+            ),
+            (
+                6,
+                1,
+            ),
+        ]
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        game_elements.snake_update( &mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        .............
+        .....####....
+        .............
+        "###
+        );
+
+        assert_debug_snapshot!(
+            game_elements.snake, 
+            @r###"
+        [
+            (
+                5,
+                1,
+            ),
+            (
+                6,
+                1,
+            ),
+            (
+                7,
+                1,
+            ),
+        ]
+        "###
+        );
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        game_elements.snake_update(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        .............
+        .............
+        .............
+        "###
+        );
+        assert_debug_snapshot!(
+            game_elements.snake, 
+            @r###"
+        [
+            (
+                7,
+                1,
+            ),
+            (
+                8,
+                1,
+            ),
+            (
+                8,
+                1,
+            ),
+            (
+                9,
+                1,
+            ),
+        ]
+        "###
+        );
+
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        game_elements.snake_update(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        .....#.......
+        ........###..
+        .............
+        "###
+        );
+        assert_debug_snapshot!(
+            game_elements.snake, 
+            @r###"
+        [
+            (
+                8,
+                1,
+            ),
+            (
+                8,
+                1,
+            ),
+            (
+                9,
+                1,
+            ),
+            (
+                10,
+                1,
+            ),
+        ]
+        "###
+        );
+
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        game_elements.snake_update(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        .....#.......
+        ........####.
+        .............
+        "###
+        );
+        assert_debug_snapshot!(
+            game_elements.snake, 
+            @r###"
+        [
+            (
+                8,
+                1,
+            ),
+            (
+                9,
+                1,
+            ),
+            (
+                10,
+                1,
+            ),
+            (
+                11,
+                1,
+            ),
+        ]
+        "###
+        );
+
+        game_elements.direction(&mut buffer);
+        game_elements.display(&mut buffer);
+        game_elements.snake_update(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###"
+        .....#.......
+        .........####
+        .............
+        "###
+        );
+        assert_debug_snapshot!(
+            game_elements.snake, 
+            @r###"
+        [
+            (
+                9,
+                1,
+            ),
+            (
+                10,
+                1,
+            ),
+            (
+                11,
+                1,
+            ),
+            (
+                12,
+                1,
+            ),
+        ]
+        "###
+        );
+    }
 }
