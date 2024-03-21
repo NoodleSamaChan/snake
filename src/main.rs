@@ -115,11 +115,15 @@ impl World {
             }
             save_file.write_all(&buffer.width().to_be_bytes())?;
             save_file.write_all(&buffer.height().to_be_bytes())?;
-            //save_file.write_all(&self.speed().to_be_bytes())?;
+            save_file.write_all(&self.food.0.to_be_bytes())?;
+            save_file.write_all(&self.food.1.to_be_bytes())?;
 
-            for number in &buffer.buffer() {
+            /*save_file.write_all(&self.speed().to_be_bytes())?;
+            save_file.write_all(&self.snake.to_be_bytes())?;
+
+            for number in &self.snake {
                 save_file.write_all(&number.to_be_bytes())?;
-            }
+            } */
 
             save_file.flush()?;
         }
@@ -236,7 +240,7 @@ impl World {
                                 reversed_vector = reversed_vector.into_iter().rev().collect();
                                 reversed_vector.push((x as usize, y as usize - 1));
                             }
-                        } 
+                        }
                     },
                     Direction::South => {
                         if buffer.get(x, y + 1) != None {
@@ -304,14 +308,20 @@ fn main() -> std::io::Result<()> {
             panic!("height different from saved height");
         }
 
-        let mut saved_chunk_2: [u8; 4] = [0; 4];
+        save_file.read_exact(&mut saved_chunk)?;
+        let mut new_food: (usize, usize) = (usize::from_be_bytes(saved_chunk), 0);
+
+        save_file.read_exact(&mut saved_chunk)?;
+        new_food.1 = usize::from_be_bytes(saved_chunk);
+
+        /*let mut saved_chunk_2: [u8; 4] = [0; 4];
 
         for y in 0..buffer.height() {
             for x in 0..buffer.width() {
                 save_file.read_exact(&mut saved_chunk_2)?;
                 buffer[(x, y)] = u32::from_be_bytes(saved_chunk_2)
             }
-        }
+        }*/
     }
 
     let mut window = Window::new(
@@ -340,7 +350,7 @@ fn main() -> std::io::Result<()> {
         let two_seconds = Duration::from_secs(1);
 
         game_elements.display(&mut buffer);
-        println!("lunaaaaa");
+        game_elements.snake_update(&mut buffer);
 
         window
             .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
