@@ -1,7 +1,6 @@
 use clap::Parser;
 use minifb::{Key, KeyRepeat, Window, WindowOptions};
 use rand::Rng;
-use std::clone;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::time::{Duration, Instant};
@@ -40,6 +39,7 @@ pub fn rgb(red: u8, green: u8, blue: u8) -> u32 {
 
 #[derive(PartialEq)]
 pub enum Direction {
+    None,
     North,
     East,
     West,
@@ -110,6 +110,22 @@ impl World {
         }
     }
 
+    pub fn go_display(&self, buffer: &mut WindowBuffer) {
+        self.snake
+            .iter()
+            .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(u8::MAX, 0, 0));
+
+        for x in 0..buffer.width() {
+            for y in 0..buffer.height() {
+                if (x, y) == (self.food.0, self.food.1)
+                    && self.snake[self.snake.len() - 1] != (x, y)
+                {
+                    buffer[(x, y)] = rgb(u8::MAX, 0, 0);
+                }
+            }
+        }
+    }
+
     pub fn handle_user_input(
         &mut self,
         window: &Window,
@@ -141,22 +157,22 @@ impl World {
             save_file.flush()?;
         }
 
-        if window.is_key_pressed(Key::Up, KeyRepeat::No) {
+        if window.is_key_pressed(Key::Up, KeyRepeat::Yes) {
             self.direction = Direction::North;
             self.direction(buffer);
         }
 
-        if window.is_key_pressed(Key::Down, KeyRepeat::No) {
+        if window.is_key_pressed(Key::Down, KeyRepeat::Yes) {
             self.direction = Direction::South;
             self.direction(buffer);
         }
 
-        if window.is_key_pressed(Key::Left, KeyRepeat::No) {
+        if window.is_key_pressed(Key::Left, KeyRepeat::Yes) {
             self.direction = Direction::West;
             self.direction(buffer);
         }
 
-        if window.is_key_pressed(Key::Right, KeyRepeat::No) {
+        if window.is_key_pressed(Key::Right, KeyRepeat::Yes) {
             self.direction = Direction::East;
             self.direction(buffer);
         }
@@ -189,6 +205,8 @@ impl World {
                         reversed_vector.push((head.0, head.1 - 1));
 
                         self.food_generator(&buffer);
+                    } else {
+                        self.finished = true;
                     }
                 }
                 Direction::South => {
@@ -205,6 +223,8 @@ impl World {
                         reversed_vector.push((head.0, head.1 + 1));
 
                         self.food_generator(&buffer);
+                    } else {
+                        self.finished = true;
                     }
                 }
                 Direction::East => {
@@ -221,6 +241,8 @@ impl World {
                         reversed_vector.push((head.0 + 1, head.1));
 
                         self.food_generator(&buffer);
+                    } else {
+                        self.finished = true;
                     }
                 }
                 Direction::West => {
@@ -238,7 +260,12 @@ impl World {
 
                         self.food_generator(&buffer);
 
+                    } else {
+                        self.finished = true;
                     }
+                }
+                Direction::None => {
+                    reversed_vector = self.snake.clone();
                 }
             }
             self.snake = reversed_vector;
@@ -265,8 +292,10 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0, head.1 - 1));
+                } else {
+                    self.finished = true;
                 }
-            }
+            } 
             Direction::South => {
                 if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false {
                     reversed_vector = self
@@ -277,6 +306,8 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0, head.1 + 1));
+                } else {
+                    self.finished = true;
                 }
             }
             Direction::East => {
@@ -289,6 +320,8 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0 + 1, head.1));
+                } else {
+                    self.finished = true;
                 }
             }
             Direction::West => {
@@ -301,7 +334,12 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0 - 1, head.1));
+                } else {
+                    self.finished = true;
                 }
+            }
+            Direction::None => {
+                reversed_vector = self.snake.clone();
             }
         }
         self.snake = reversed_vector;
@@ -367,22 +405,33 @@ fn main() -> std::io::Result<()> {
 
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
-    let mut game_elements: World = World::new(Direction::North, Vec::new(), (0, 0), false);
+    let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false);
     game_elements.snake_generator(&buffer);
     game_elements.food_generator(&buffer);
 
     let mut instant = Instant::now();
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        let _ = game_elements.handle_user_input(&window, &cli, &mut buffer);
-        let two_seconds = Duration::from_secs(1);
 
-        game_elements.display(&mut buffer);
-        game_elements.snake_update(&mut buffer);
+        if game_elements.finished == false {
+            let elapsed_time = Duration::from_millis(40);
+            let _ = game_elements.handle_user_input(&window, &cli, &mut buffer);
 
-        window
-            .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
-            .unwrap();
+            if instant.elapsed() >= elapsed_time {
+                
+                game_elements.direction(&mut buffer);
+                instant = Instant::now();
+            }
+            game_elements.display(&mut buffer);
+            game_elements.snake_update(&mut buffer);
+
+            window
+                .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
+                .unwrap();
+        } else {
+
+            game_elements.go_display(&mut buffer);
+        }
     }
 
     Ok(())
@@ -392,7 +441,6 @@ fn main() -> std::io::Result<()> {
 mod test {
     use super::*;
     use insta::{assert_debug_snapshot, assert_snapshot};
-    use proptest::bits::BitSetLike;
 
     #[test]
     fn test_rgb() {
