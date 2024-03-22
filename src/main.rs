@@ -4,8 +4,8 @@ use rand::Rng;
 use std::clone;
 use std::fs::File;
 use std::io::{Read, Write};
+use std::time::{Duration, Instant};
 use window_rs::WindowBuffer;
-use std::time::{Instant, Duration};
 
 //CLI
 #[derive(Parser, Debug)]
@@ -44,7 +44,7 @@ pub enum Direction {
     East,
     West,
     South,
-  }
+}
 
 //WORLD CREATION
 pub struct World {
@@ -55,7 +55,12 @@ pub struct World {
 }
 
 impl World {
-    pub fn new(direction: Direction, snake: Vec<(usize, usize)>, food: (usize, usize), finished: bool) -> Self {
+    pub fn new(
+        direction: Direction,
+        snake: Vec<(usize, usize)>,
+        food: (usize, usize),
+        finished: bool,
+    ) -> Self {
         Self {
             direction,
             snake,
@@ -64,7 +69,7 @@ impl World {
         }
     }
 
-    pub fn food_generator(&mut self, buffer: &WindowBuffer){
+    pub fn food_generator(&mut self, buffer: &WindowBuffer) {
         loop {
             let x = rand::thread_rng().gen_range(0..buffer.width());
             let y = rand::thread_rng().gen_range(0..buffer.height());
@@ -72,7 +77,7 @@ impl World {
             let checker = self.snake.iter().any(|(a, b)| (a, b) == (&x, &y));
 
             if checker == true {
-                continue
+                continue;
             } else {
                 self.food = (x, y);
                 return;
@@ -89,20 +94,28 @@ impl World {
         self.snake.push((x_middle_point, y_middle_point));
     }
 
-    pub fn display(& self, buffer: &mut WindowBuffer) {
+    pub fn display(&self, buffer: &mut WindowBuffer) {
+        self.snake
+            .iter()
+            .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(0, 0, u8::MAX));
 
-        self.snake.iter().for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(0, 0, u8::MAX));
-        
-        for x in 0..buffer.width(){
-            for y in 0..buffer.height(){
-                if (x, y) == (self.food.0, self.food.1) && self.snake[self.snake.len() - 1] != (x, y) {
+        for x in 0..buffer.width() {
+            for y in 0..buffer.height() {
+                if (x, y) == (self.food.0, self.food.1)
+                    && self.snake[self.snake.len() - 1] != (x, y)
+                {
                     buffer[(x, y)] = rgb(0, u8::MAX, 0);
                 }
             }
         }
     }
 
-    pub fn handle_user_input(&mut self, window: &Window, cli: &Cli, buffer: &mut WindowBuffer) -> std::io::Result<()> {
+    pub fn handle_user_input(
+        &mut self,
+        window: &Window,
+        cli: &Cli,
+        buffer: &mut WindowBuffer,
+    ) -> std::io::Result<()> {
         if window.is_key_pressed(Key::Q, KeyRepeat::No) {
             buffer.reset();
         }
@@ -152,133 +165,148 @@ impl World {
     }
 
     pub fn snake_update(&mut self, buffer: &mut WindowBuffer) {
-
         if self.snake[self.snake.len() - 1] == self.food {
             let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
 
-            for x in 0..buffer.width() {
-                for y in 0..buffer.height() {
-                    let x = x as isize;
-                    let y = y as isize;
+            let head = self.snake[self.snake.len() - 1];
+            let mut snake_body = self.snake.clone();
+            snake_body.pop();
 
-                    match self.direction {
-                        Direction::North => {
-                            if buffer.get(x, y - 1) != None {
-                                if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
+            let checker = snake_body.iter().any(|(a, b)| (a, b) == (&head.0, &head.1));
 
-                                    self.snake.push((x as usize, y as usize));
-                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
-                                    reversed_vector = reversed_vector.into_iter().rev().collect();
-                                    reversed_vector.push((x as usize, y as usize - 1));
+            match self.direction {
+                Direction::North => {
+                    if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, head.1 - 1));
 
-                                    self.food_generator(&buffer);
-                                }
-                            } 
-                        },
-                        Direction::South => {
-                            if buffer.get(x, y + 1) != None {
-                                if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
-                                    self.snake.push((x as usize, y as usize));
-                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
-                                    reversed_vector = reversed_vector.into_iter().rev().collect();
-                                    reversed_vector.push((x as usize, y as usize + 1));
+                        self.food_generator(&buffer);
+                    }
+                }
+                Direction::South => {
+                    if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, head.1 + 1));
 
-                                    self.food_generator(&buffer);
-                                }
-                            }
-                        },
-                        Direction::East => {
-                            if buffer.get(x + 1, y) != None {
-                                if buffer.get(x + 1, y) != None {
-                                    if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
-                                        self.snake.push((x as usize, y as usize));
-                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
-                                    reversed_vector = reversed_vector.into_iter().rev().collect();
-                                    reversed_vector.push((x as usize + 1, y as usize));
+                        self.food_generator(&buffer);
+                    }
+                }
+                Direction::East => {
+                    if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0 + 1, head.1));
 
-                                    self.food_generator(&buffer);
-                                    }
-                                }
-                            }
-                        },
-                        Direction::West => {
-                            if buffer.get(x - 1, y) != None {
-                                if buffer.get(x - 1, y) != None {
-                                    if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
-                                        self.snake.push((x as usize, y as usize));
-                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
-                                    reversed_vector = reversed_vector.into_iter().rev().collect();
-                                    reversed_vector.push((x as usize - 1, y as usize));
+                        self.food_generator(&buffer);
+                    }
+                }
+                Direction::West => {
+                    if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0 - 1, head.1));
 
-                                    self.food_generator(&buffer);
-                                    }
-                                }
-                            }
-                        }
+                        self.food_generator(&buffer);
+
                     }
                 }
             }
             self.snake = reversed_vector;
             buffer.reset()
-
         }
     }
 
     pub fn direction(&mut self, buffer: &mut WindowBuffer) {
         let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
+        let head = self.snake[self.snake.len() - 1];
+        let mut snake_body = self.snake.clone();
+        snake_body.pop();
 
-        for x in 0..buffer.width() {
-            for y in 0..buffer.height() {
-                let x = x as isize;
-                let y = y as isize;
+        let checker = snake_body.iter().any(|(a, b)| (a, b) == (&head.0, &head.1));
 
-                match self.direction {
-                    Direction::North => {
-                        if buffer.get(x, y - 1) != None {
-                            if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
-                                reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
-                                reversed_vector = reversed_vector.into_iter().rev().collect();
-                                reversed_vector.push((x as usize, y as usize - 1));
-                            }
-                        }
-                    },
-                    Direction::South => {
-                        if buffer.get(x, y + 1) != None {
-                            if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
-                                reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
-                                reversed_vector = reversed_vector.into_iter().rev().collect();
-                                reversed_vector.push((x as usize, y as usize + 1));
-                            }
-                        }
-                    },
-                    Direction::East => {
-                        if buffer.get(x + 1, y) != None {
-                            if buffer.get(x + 1, y) != None {
-                                if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
-                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
-                                    reversed_vector = reversed_vector.into_iter().rev().collect();
-                                    reversed_vector.push((x as usize + 1, y as usize));
-                                }
-                            }
-                        }
-                    },
-                    Direction::West => {
-                        if buffer.get(x - 1, y) != None {
-                            if buffer.get(x - 1, y) != None {
-                                if (self.snake[self.snake.len() - 1]) == (x as usize, y as usize) {
-                                    reversed_vector = self.snake.windows(2).rev().map(|x| x[1]).collect::<Vec<_>>();
-                                    reversed_vector = reversed_vector.into_iter().rev().collect();
-                                    reversed_vector.push((x as usize - 1, y as usize));
-                                }
-                            }
-                        }
-                    }
+        match self.direction {
+            Direction::North => {
+                if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false {
+                    reversed_vector = self
+                        .snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                    reversed_vector.push((head.0, head.1 - 1));
+                }
+            }
+            Direction::South => {
+                if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false {
+                    reversed_vector = self
+                        .snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                    reversed_vector.push((head.0, head.1 + 1));
+                }
+            }
+            Direction::East => {
+                if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false {
+                    reversed_vector = self
+                        .snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                    reversed_vector.push((head.0 + 1, head.1));
+                }
+            }
+            Direction::West => {
+                if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false {
+                    reversed_vector = self
+                        .snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                    reversed_vector.push((head.0 - 1, head.1));
                 }
             }
         }
-    self.snake = reversed_vector;
-    buffer.reset()
-    } 
+        self.snake = reversed_vector;
+        buffer.reset()
+    }
 }
 //WORLD CREATION END
 
@@ -393,7 +421,7 @@ mod test {
         );
 
         assert_debug_snapshot!(
-            game_elements.snake, 
+            game_elements.snake,
         @r###"
         [
             (
@@ -426,7 +454,7 @@ mod test {
         );
 
         assert_debug_snapshot!(
-            game_elements.snake, 
+            game_elements.snake,
             @r###"
         [
             (
@@ -458,7 +486,7 @@ mod test {
         "###
         );
         assert_debug_snapshot!(
-            game_elements.snake, 
+            game_elements.snake,
             @r###"
         [
             (
@@ -491,7 +519,7 @@ mod test {
         "###
         );
         assert_debug_snapshot!(
-            game_elements.snake, 
+            game_elements.snake,
             @r###"
         [
             (
@@ -646,6 +674,7 @@ mod test {
     }
 
     #[test]
+    #[should_panic]
     fn snake_moves_west() {
         let mut buffer: WindowBuffer = WindowBuffer::new(10, 8);
         let mut game_elements: World = World::new(Direction::West, Vec::new(), (0, 0), false);
@@ -727,7 +756,7 @@ mod test {
         );
         game_elements.direction(&mut buffer);
         game_elements.display(&mut buffer);
-        
+
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -761,7 +790,7 @@ mod test {
         );
 
         assert_debug_snapshot!(
-            game_elements.snake, 
+            game_elements.snake,
         @r###"
         [
             (
@@ -781,7 +810,7 @@ mod test {
         );
         game_elements.direction(&mut buffer);
         game_elements.display(&mut buffer);
-        game_elements.snake_update( &mut buffer);
+        game_elements.snake_update(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -792,7 +821,7 @@ mod test {
         );
 
         assert_debug_snapshot!(
-            game_elements.snake, 
+            game_elements.snake,
             @r###"
         [
             (
@@ -822,7 +851,7 @@ mod test {
         "###
         );
         assert_debug_snapshot!(
-            game_elements.snake, 
+            game_elements.snake,
             @r###"
         [
             (
@@ -851,13 +880,13 @@ mod test {
         assert_snapshot!(
             buffer.to_string(),
             @r###"
-        .....#.......
+        ..#..........
         ........###..
         .............
         "###
         );
         assert_debug_snapshot!(
-            game_elements.snake, 
+            game_elements.snake,
             @r###"
         [
             (
@@ -886,13 +915,13 @@ mod test {
         assert_snapshot!(
             buffer.to_string(),
             @r###"
-        .....#.......
+        ..#..........
         ........####.
         .............
         "###
         );
         assert_debug_snapshot!(
-            game_elements.snake, 
+            game_elements.snake,
             @r###"
         [
             (
@@ -921,13 +950,13 @@ mod test {
         assert_snapshot!(
             buffer.to_string(),
             @r###"
-        .....#.......
+        ..#..........
         .........####
         .............
         "###
         );
         assert_debug_snapshot!(
-            game_elements.snake, 
+            game_elements.snake,
             @r###"
         [
             (
