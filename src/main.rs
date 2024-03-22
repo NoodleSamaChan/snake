@@ -53,6 +53,8 @@ pub struct World {
     snake: Vec<(usize, usize)>,
     food: (usize, usize),
     finished: bool,
+    small_break_timer: Instant,
+    space_count: usize,
 }
 
 impl World {
@@ -61,12 +63,23 @@ impl World {
         snake: Vec<(usize, usize)>,
         food: (usize, usize),
         finished: bool,
+        small_break_timer: Instant,
+        space_count: usize,
     ) -> Self {
         Self {
             direction,
             snake,
             food,
             finished,
+            small_break_timer,
+            space_count,
+        }
+    }
+
+    pub fn update(&mut self, buffer: &mut WindowBuffer) {
+        if self.space_count % 2 == 0 {
+            self.direction(buffer);
+            self.snake_update(buffer);
         }
     }
 
@@ -176,6 +189,15 @@ impl World {
         if window.is_key_pressed(Key::Right, KeyRepeat::Yes) {
             self.direction = Direction::East;
             self.direction(buffer);
+        }
+
+        let small_break = Duration::from_millis(0);
+        if self.small_break_timer.elapsed() >= small_break {
+            window.get_keys_released().iter().for_each(|key| match key {
+                Key::Space => self.space_count += 1,
+                _ => (),
+            });
+            self.small_break_timer = Instant::now();
         }
 
         Ok(())
@@ -429,7 +451,7 @@ fn main() -> std::io::Result<()> {
 
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
-    let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false);
+    let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false, Instant::now(), 0);
     game_elements.snake_generator(&buffer);
     game_elements.food_generator(&buffer);
 
@@ -443,11 +465,10 @@ fn main() -> std::io::Result<()> {
 
             if instant.elapsed() >= elapsed_time {
                 
-                game_elements.direction(&mut buffer);
+                game_elements.update(&mut buffer);
                 instant = Instant::now();
             }
             game_elements.display(&mut buffer);
-            game_elements.snake_update(&mut buffer);
 
             window
                 .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
@@ -479,7 +500,7 @@ mod test {
     #[test]
     fn snake_moves_east() {
         let mut buffer: WindowBuffer = WindowBuffer::new(8, 6);
-        let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false);
+        let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false, Instant::now(), 0);
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
 
@@ -617,7 +638,7 @@ mod test {
     #[test]
     fn snake_moves_north() {
         let mut buffer: WindowBuffer = WindowBuffer::new(8, 8);
-        let mut game_elements: World = World::new(Direction::North, Vec::new(), (0, 0), false);
+        let mut game_elements: World = World::new(Direction::North, Vec::new(), (0, 0), false, Instant::now(), 0);
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
 
@@ -684,7 +705,7 @@ mod test {
     #[test]
     fn snake_moves_south() {
         let mut buffer: WindowBuffer = WindowBuffer::new(8, 8);
-        let mut game_elements: World = World::new(Direction::South, Vec::new(), (0, 0), false);
+        let mut game_elements: World = World::new(Direction::South, Vec::new(), (0, 0), false, Instant::now(), 0);
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
 
@@ -752,7 +773,7 @@ mod test {
     #[should_panic]
     fn snake_moves_west() {
         let mut buffer: WindowBuffer = WindowBuffer::new(10, 8);
-        let mut game_elements: World = World::new(Direction::West, Vec::new(), (0, 0), false);
+        let mut game_elements: World = World::new(Direction::West, Vec::new(), (0, 0), false, Instant::now(), 0);
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
 
@@ -850,7 +871,7 @@ mod test {
     #[test]
     fn snake_eats() {
         let mut buffer: WindowBuffer = WindowBuffer::new(13, 3);
-        let mut game_elements: World = World::new(Direction::East, Vec::new(), (8, 1), false);
+        let mut game_elements: World = World::new(Direction::East, Vec::new(), (8, 1), false, Instant::now(), 0);
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
         game_elements.snake_update(&mut buffer);
