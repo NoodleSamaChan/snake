@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::time::{Duration, Instant};
 use window_rs::WindowBuffer;
+use crate::Direction::Still;
 
 //CLI
 #[derive(Parser, Debug)]
@@ -39,7 +40,7 @@ pub fn rgb(red: u8, green: u8, blue: u8) -> u32 {
 
 #[derive(PartialEq)]
 pub enum Direction {
-    None,
+    Still,
     North,
     East,
     West,
@@ -206,7 +207,10 @@ impl World {
 
                         self.food_generator(&buffer);
                     } else {
+                        self.direction = Still;
+                        reversed_vector = self.snake.clone();
                         self.finished = true;
+                        
                     }
                 }
                 Direction::South => {
@@ -224,6 +228,8 @@ impl World {
 
                         self.food_generator(&buffer);
                     } else {
+                        self.direction = Still;
+                        reversed_vector = self.snake.clone();
                         self.finished = true;
                     }
                 }
@@ -242,6 +248,8 @@ impl World {
 
                         self.food_generator(&buffer);
                     } else {
+                        self.direction = Still;
+                        reversed_vector = self.snake.clone();
                         self.finished = true;
                     }
                 }
@@ -261,10 +269,12 @@ impl World {
                         self.food_generator(&buffer);
 
                     } else {
+                        self.direction = Still;
+                        reversed_vector = self.snake.clone();
                         self.finished = true;
                     }
                 }
-                Direction::None => {
+                Direction::Still => {
                     reversed_vector = self.snake.clone();
                 }
             }
@@ -293,7 +303,10 @@ impl World {
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0, head.1 - 1));
                 } else {
+                    self.direction = Still;
+                    reversed_vector = self.snake.clone();
                     self.finished = true;
+                    self.go_display(buffer);
                 }
             } 
             Direction::South => {
@@ -307,7 +320,10 @@ impl World {
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0, head.1 + 1));
                 } else {
+                    self.direction = Still;
+                    reversed_vector = self.snake.clone();
                     self.finished = true;
+                    self.go_display(buffer);
                 }
             }
             Direction::East => {
@@ -321,7 +337,10 @@ impl World {
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0 + 1, head.1));
                 } else {
+                    self.direction = Still;
+                    reversed_vector = self.snake.clone();
                     self.finished = true;
+                    self.go_display(buffer);
                 }
             }
             Direction::West => {
@@ -335,11 +354,16 @@ impl World {
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0 - 1, head.1));
                 } else {
+                    self.direction = Still;
+                    reversed_vector = self.snake.clone();
                     self.finished = true;
+                    self.go_display(buffer);
                 }
             }
-            Direction::None => {
+            Direction::Still => {
+                self.direction = Still;
                 reversed_vector = self.snake.clone();
+                self.go_display(buffer);
             }
         }
         self.snake = reversed_vector;
@@ -431,6 +455,9 @@ fn main() -> std::io::Result<()> {
         } else {
 
             game_elements.go_display(&mut buffer);
+            window
+                .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
+                .unwrap();
         }
     }
 
