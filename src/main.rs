@@ -20,6 +20,8 @@ pub struct Cli {
     snake_size_start: usize,
     #[arg(long)]
     file_path: Option<String>,
+    #[arg(long)]
+    speed_increase: bool,
 }
 //CLI END
 
@@ -55,6 +57,7 @@ pub struct World {
     finished: bool,
     small_break_timer: Instant,
     space_count: usize,
+    snake_speed : usize,
 }
 
 impl World {
@@ -65,6 +68,7 @@ impl World {
         finished: bool,
         small_break_timer: Instant,
         space_count: usize,
+        snake_speed : usize,
     ) -> Self {
         Self {
             direction,
@@ -73,6 +77,7 @@ impl World {
             finished,
             small_break_timer,
             space_count,
+            snake_speed,
         }
     }
 
@@ -203,7 +208,7 @@ impl World {
         Ok(())
     }
 
-    pub fn snake_update(&mut self, buffer: &mut WindowBuffer) {
+    pub fn snake_update(&mut self, buffer: &mut WindowBuffer, cli: &Cli) {
         if self.snake[self.snake.len() - 1] == self.food {
             let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
 
@@ -228,6 +233,7 @@ impl World {
                         reversed_vector.push((head.0, head.1 - 1));
 
                         self.food_generator(&buffer);
+                        self.snake_speed = 120;
                     } else {
                         self.direction = Still;
                         reversed_vector = self.snake.clone();
@@ -249,6 +255,7 @@ impl World {
                         reversed_vector.push((head.0, head.1 + 1));
 
                         self.food_generator(&buffer);
+                        self.snake_speed = 120;
                     } else {
                         self.direction = Still;
                         reversed_vector = self.snake.clone();
@@ -269,6 +276,7 @@ impl World {
                         reversed_vector.push((head.0 + 1, head.1));
 
                         self.food_generator(&buffer);
+                        self.snake_speed = 120;
                     } else {
                         self.direction = Still;
                         reversed_vector = self.snake.clone();
@@ -289,6 +297,7 @@ impl World {
                         reversed_vector.push((head.0 - 1, head.1));
 
                         self.food_generator(&buffer);
+                        self.snake_speed = 120;
 
                     } else {
                         self.direction = Still;
@@ -305,7 +314,7 @@ impl World {
         }
     }
 
-    pub fn direction(&mut self, buffer: &mut WindowBuffer) {
+    pub fn direction(&mut self, buffer: &mut WindowBuffer, cli: &Cli) {
         let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
         let head = self.snake[self.snake.len() - 1];
         let mut snake_body = self.snake.clone();
@@ -324,6 +333,9 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0, head.1 - 1));
+                    if cli.speed_increase == true && self.snake_speed > 0 {
+                        self.snake_speed -= 1;
+                    }
                 } else {
                     self.direction = Still;
                     reversed_vector = self.snake.clone();
@@ -341,6 +353,9 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0, head.1 + 1));
+                    if cli.speed_increase == true && self.snake_speed > 0 {
+                        self.snake_speed -= 1;
+                    }
                 } else {
                     self.direction = Still;
                     reversed_vector = self.snake.clone();
@@ -358,6 +373,9 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0 + 1, head.1));
+                    if cli.speed_increase == true && self.snake_speed > 0 {
+                        self.snake_speed -= 1;
+                    }
                 } else {
                     self.direction = Still;
                     reversed_vector = self.snake.clone();
@@ -375,6 +393,9 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0 - 1, head.1));
+                    if cli.speed_increase == true && self.snake_speed > 0 {
+                        self.snake_speed -= 1;
+                    }
                 } else {
                     self.direction = Still;
                     reversed_vector = self.snake.clone();
@@ -451,7 +472,7 @@ fn main() -> std::io::Result<()> {
 
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
-    let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false, Instant::now(), 0);
+    let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false, Instant::now(), 0, 120);
     game_elements.snake_generator(&buffer);
     game_elements.food_generator(&buffer);
 
@@ -460,7 +481,7 @@ fn main() -> std::io::Result<()> {
     while window.is_open() && !window.is_key_down(Key::Escape) {
 
         if game_elements.finished == false {
-            let elapsed_time = Duration::from_millis(40);
+            let elapsed_time = Duration::from_millis(game_elements.snake_speed as u64);
             let _ = game_elements.handle_user_input(&window, &cli, &mut buffer);
 
             if instant.elapsed() >= elapsed_time {
@@ -499,8 +520,9 @@ mod test {
 
     #[test]
     fn snake_moves_east() {
+        let cli = Cli::parse();
         let mut buffer: WindowBuffer = WindowBuffer::new(8, 6);
-        let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false, Instant::now(), 0);
+        let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false, Instant::now(), 0, 100);
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
 
@@ -535,7 +557,7 @@ mod test {
         ]
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -568,7 +590,7 @@ mod test {
         ]
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -601,7 +623,7 @@ mod test {
         "###
         );
 
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -637,8 +659,9 @@ mod test {
 
     #[test]
     fn snake_moves_north() {
+        let cli = Cli::parse();
         let mut buffer: WindowBuffer = WindowBuffer::new(8, 8);
-        let mut game_elements: World = World::new(Direction::North, Vec::new(), (0, 0), false, Instant::now(), 0);
+        let mut game_elements: World = World::new(Direction::North, Vec::new(), (0, 0), false, Instant::now(), 0, 100);
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
 
@@ -655,7 +678,7 @@ mod test {
         ........
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -670,7 +693,7 @@ mod test {
         ........
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -685,7 +708,7 @@ mod test {
         ........
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -704,8 +727,9 @@ mod test {
 
     #[test]
     fn snake_moves_south() {
+        let cli = Cli::parse();
         let mut buffer: WindowBuffer = WindowBuffer::new(8, 8);
-        let mut game_elements: World = World::new(Direction::South, Vec::new(), (0, 0), false, Instant::now(), 0);
+        let mut game_elements: World = World::new(Direction::South, Vec::new(), (0, 0), false, Instant::now(), 0, 100);
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
 
@@ -722,7 +746,7 @@ mod test {
         ........
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -737,7 +761,7 @@ mod test {
         ........
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -752,7 +776,7 @@ mod test {
         ........
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -772,8 +796,9 @@ mod test {
     #[test]
     #[should_panic]
     fn snake_moves_west() {
+        let cli = Cli::parse();
         let mut buffer: WindowBuffer = WindowBuffer::new(10, 8);
-        let mut game_elements: World = World::new(Direction::West, Vec::new(), (0, 0), false, Instant::now(), 0);
+        let mut game_elements: World = World::new(Direction::West, Vec::new(), (0, 0), false, Instant::now(), 0, 100);
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
 
@@ -790,7 +815,7 @@ mod test {
         ..........
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -805,7 +830,7 @@ mod test {
         ..........
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -820,7 +845,7 @@ mod test {
         ..........
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -835,7 +860,7 @@ mod test {
         ..........
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
         assert_snapshot!(
             buffer.to_string(),
@@ -850,7 +875,7 @@ mod test {
         ..........
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
 
         assert_snapshot!(
@@ -870,11 +895,12 @@ mod test {
 
     #[test]
     fn snake_eats() {
+        let cli = Cli::parse();
         let mut buffer: WindowBuffer = WindowBuffer::new(13, 3);
-        let mut game_elements: World = World::new(Direction::East, Vec::new(), (8, 1), false, Instant::now(), 0);
+        let mut game_elements: World = World::new(Direction::East, Vec::new(), (8, 1), false, Instant::now(), 0, 100);
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
-        game_elements.snake_update(&mut buffer);
+        game_elements.snake_update(&mut buffer, &cli);
 
         assert_snapshot!(
             buffer.to_string(),
@@ -904,9 +930,9 @@ mod test {
         ]
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
-        game_elements.snake_update(&mut buffer);
+        game_elements.snake_update(&mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -935,9 +961,9 @@ mod test {
         ]
         "###
         );
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
-        game_elements.snake_update(&mut buffer);
+        game_elements.snake_update(&mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -970,9 +996,9 @@ mod test {
         "###
         );
 
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
-        game_elements.snake_update(&mut buffer);
+        game_elements.snake_update(&mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1005,9 +1031,9 @@ mod test {
         "###
         );
 
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
-        game_elements.snake_update(&mut buffer);
+        game_elements.snake_update(&mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1040,9 +1066,9 @@ mod test {
         "###
         );
 
-        game_elements.direction(&mut buffer);
+        game_elements.direction(&mut buffer, &cli);
         game_elements.display(&mut buffer);
-        game_elements.snake_update(&mut buffer);
+        game_elements.snake_update(&mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
