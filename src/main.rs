@@ -22,7 +22,7 @@ pub struct Cli {
     file_path: Option<String>,
     #[arg(long, default_value_t = 120)]
     snake_speed: usize,
-    #[arg(long)]
+    #[arg(long, default_value_t = false)]
     speed_increase: bool,
 }
 //CLI END
