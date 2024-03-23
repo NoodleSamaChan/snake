@@ -464,7 +464,7 @@ fn main() -> std::io::Result<()> {
         buffer.width(),
         buffer.height(),
         WindowOptions {
-            scale: minifb::Scale::X8,
+            scale: minifb::Scale::X16,
             ..WindowOptions::default()
         },
     )
