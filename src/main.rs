@@ -20,6 +20,8 @@ pub struct Cli {
     snake_size_start: usize,
     #[arg(long)]
     file_path: Option<String>,
+    #[arg(long, default_value_t = 120)]
+    snake_speed: usize,
     #[arg(long)]
     speed_increase: bool,
 }
@@ -81,10 +83,10 @@ impl World {
         }
     }
 
-    pub fn update(&mut self, buffer: &mut WindowBuffer) {
+    pub fn update(&mut self, buffer: &mut WindowBuffer, cli: &Cli) {
         if self.space_count % 2 == 0 {
-            self.direction(buffer);
-            self.snake_update(buffer);
+            self.direction(buffer, cli);
+            self.snake_update(buffer, cli);
         }
     }
 
@@ -178,22 +180,22 @@ impl World {
 
         if window.is_key_pressed(Key::Up, KeyRepeat::Yes) {
             self.direction = Direction::North;
-            self.direction(buffer);
+            self.direction(buffer, cli);
         }
 
         if window.is_key_pressed(Key::Down, KeyRepeat::Yes) {
             self.direction = Direction::South;
-            self.direction(buffer);
+            self.direction(buffer, cli);
         }
 
         if window.is_key_pressed(Key::Left, KeyRepeat::Yes) {
             self.direction = Direction::West;
-            self.direction(buffer);
+            self.direction(buffer, cli);
         }
 
         if window.is_key_pressed(Key::Right, KeyRepeat::Yes) {
             self.direction = Direction::East;
-            self.direction(buffer);
+            self.direction(buffer, cli);
         }
 
         let small_break = Duration::from_millis(0);
@@ -472,7 +474,7 @@ fn main() -> std::io::Result<()> {
 
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
-    let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false, Instant::now(), 0, 120);
+    let mut game_elements: World = World::new(Direction::East, Vec::new(), (0, 0), false, Instant::now(), 0, cli.snake_speed);
     game_elements.snake_generator(&buffer);
     game_elements.food_generator(&buffer);
 
@@ -486,7 +488,7 @@ fn main() -> std::io::Result<()> {
 
             if instant.elapsed() >= elapsed_time {
                 
-                game_elements.update(&mut buffer);
+                game_elements.update(&mut buffer, &cli);
                 instant = Instant::now();
             }
             game_elements.display(&mut buffer);
