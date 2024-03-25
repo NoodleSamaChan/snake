@@ -1,11 +1,18 @@
 use crate::Direction::Still;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use minifb::{Key, KeyRepeat, Window, WindowOptions};
 use rand::Rng;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::time::{Duration, Instant};
 use window_rs::WindowBuffer;
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
+enum Difficulty {
+    Easy,
+    Medium,
+    Hard,
+}
 
 //CLI
 #[derive(Parser, Debug)]
@@ -22,10 +29,10 @@ pub struct Cli {
     file_path: Option<String>,
     #[arg(long, default_value_t = 120)]
     snake_speed: usize,
-    #[arg(long, default_value_t = String::from("medium"))]
-    speed_increase: String,
-    #[arg(long, default_value_t = String::from("no"))]
-    bad_berries: String,
+    #[arg(long)]
+    speed_increase: Difficulty,
+    #[arg(long, default_value_t = false)]
+    bad_berries: bool,
 }
 //CLI END
 
@@ -115,7 +122,7 @@ impl World {
                 continue;
             } else {
                 self.food = (x, y);
-                if cli.bad_berries == "yes" || cli.bad_berries == "Yes" || cli.bad_berries == "Y"
+                if cli.bad_berries == true
                 {
                     self.bad_berries_position = Some((v, w));
                 }
@@ -256,7 +263,7 @@ impl World {
                         reversed_vector = reversed_vector.into_iter().rev().collect();
                         reversed_vector.push((head.0, head.1 - 1));
 
-                        if cli.speed_increase == "yes" || cli.speed_increase == "Yes" || cli.speed_increase == "y" {
+                        if cli.speed_increase == Difficulty::Hard {
                             self.snake_speed = 120;
                         }
 
@@ -285,7 +292,7 @@ impl World {
                         reversed_vector = reversed_vector.into_iter().rev().collect();
                         reversed_vector.push((head.0, head.1 + 1));
 
-                        if cli.speed_increase == "yes" || cli.speed_increase == "Yes" || cli.speed_increase == "y" {
+                        if cli.speed_increase == Difficulty::Hard {
                             self.snake_speed = 120;
                         }
 
@@ -313,7 +320,7 @@ impl World {
                         reversed_vector = reversed_vector.into_iter().rev().collect();
                         reversed_vector.push((head.0 + 1, head.1));
 
-                        if cli.speed_increase == "yes" || cli.speed_increase == "Yes" || cli.speed_increase == "y" {
+                        if cli.speed_increase == Difficulty::Hard {
                             self.snake_speed = 120;
                         }
 
@@ -341,7 +348,7 @@ impl World {
                         reversed_vector = reversed_vector.into_iter().rev().collect();
                         reversed_vector.push((head.0 - 1, head.1));
 
-                        if cli.speed_increase == "yes" || cli.speed_increase == "Yes" || cli.speed_increase == "y" {
+                        if cli.speed_increase == Difficulty::Hard {
                             self.snake_speed = 120;
                         }
 
@@ -506,7 +513,7 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0, head.1 - 1));
-                    if cli.speed_increase == "hard" && self.snake_speed > 0 {
+                    if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
                         self.snake_speed -= 1;
                     }
                 } else {
@@ -527,7 +534,7 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0, head.1 + 1));
-                    if cli.speed_increase == "hard" && self.snake_speed > 0 {
+                    if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
                         self.snake_speed -= 1;
                     }
                 } else {
@@ -548,7 +555,7 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0 + 1, head.1));
-                    if cli.speed_increase == "hard" && self.snake_speed > 0 {
+                    if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
                         self.snake_speed -= 1;
                     }
                 } else {
@@ -569,7 +576,7 @@ impl World {
                         .collect::<Vec<_>>();
                     reversed_vector = reversed_vector.into_iter().rev().collect();
                     reversed_vector.push((head.0 - 1, head.1));
-                    if cli.speed_increase == "hard" && self.snake_speed > 0 {
+                    if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
                         self.snake_speed -= 1;
                     }
                 } else {
