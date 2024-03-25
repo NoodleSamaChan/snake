@@ -209,22 +209,18 @@ impl World {
 
         if window.is_key_pressed(Key::Up, KeyRepeat::Yes) {
             self.direction = Direction::North;
-            self.direction(buffer, cli);
         }
 
         if window.is_key_pressed(Key::Down, KeyRepeat::Yes) {
             self.direction = Direction::South;
-            self.direction(buffer, cli);
         }
 
         if window.is_key_pressed(Key::Left, KeyRepeat::Yes) {
             self.direction = Direction::West;
-            self.direction(buffer, cli);
         }
 
         if window.is_key_pressed(Key::Right, KeyRepeat::Yes) {
             self.direction = Direction::East;
-            self.direction(buffer, cli);
         }
 
         let small_break = Duration::from_millis(0);
