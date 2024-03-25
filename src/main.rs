@@ -108,6 +108,10 @@ impl World {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.snake.clear();
+    }
+
     pub fn food_generator(&mut self, buffer: &WindowBuffer, cli: &Cli) {
         loop {
             let x = rand::thread_rng().gen_range(0..buffer.width());
@@ -141,6 +145,7 @@ impl World {
     }
 
     pub fn display(&self, buffer: &mut WindowBuffer) {
+        buffer.reset();
         self.snake
             .iter()
             .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(0, 0, u8::MAX));
@@ -158,9 +163,11 @@ impl World {
                 }
             }
         }
+        
     }
 
     pub fn go_display(&self, buffer: &mut WindowBuffer) {
+        buffer.reset();
         self.snake
             .iter()
             .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(u8::MAX, 0, 0));
@@ -180,10 +187,10 @@ impl World {
         &mut self,
         window: &Window,
         cli: &Cli,
-        buffer: &mut WindowBuffer,
+        buffer: & WindowBuffer,
     ) -> std::io::Result<()> {
         if window.is_key_pressed(Key::Q, KeyRepeat::No) {
-            buffer.reset();
+            self.reset();
         }
 
         if window.is_key_pressed(Key::S, KeyRepeat::No) {
@@ -235,7 +242,7 @@ impl World {
         Ok(())
     }
 
-    pub fn snake_update(&mut self, buffer: &mut WindowBuffer, cli: &Cli) {
+    pub fn snake_update(&mut self, buffer: &WindowBuffer, cli: &Cli) {
         if self.snake[self.snake.len() - 1] == self.food {
             let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
 
@@ -364,7 +371,6 @@ impl World {
                 }
             }
             self.snake = reversed_vector;
-            buffer.reset()
         } else if (self.bad_berries_position != None)
             && (self.snake[self.snake.len() - 1] == self.bad_berries_position.unwrap())
         {
@@ -486,11 +492,10 @@ impl World {
                 }
             }
             self.snake = reversed_vector;
-            buffer.reset()
         }
     }
 
-    pub fn direction(&mut self, buffer: &mut WindowBuffer, cli: &Cli) {
+    pub fn direction(&mut self, buffer: &WindowBuffer, cli: &Cli) {
         let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
         let head = self.snake[self.snake.len() - 1];
         let mut snake_body = self.snake.clone();
@@ -516,7 +521,6 @@ impl World {
                     self.direction = Still;
                     reversed_vector = self.snake.clone();
                     self.finished = true;
-                    self.go_display(buffer);
                     println!("Your score is {}", self.score);
                 }
             }
@@ -537,7 +541,6 @@ impl World {
                     self.direction = Still;
                     reversed_vector = self.snake.clone();
                     self.finished = true;
-                    self.go_display(buffer);
                     println!("Your score is {}", self.score);
                 }
             }
@@ -558,7 +561,6 @@ impl World {
                     self.direction = Still;
                     reversed_vector = self.snake.clone();
                     self.finished = true;
-                    self.go_display(buffer);
                     println!("Your score is {}", self.score);
                 }
             }
@@ -579,18 +581,15 @@ impl World {
                     self.direction = Still;
                     reversed_vector = self.snake.clone();
                     self.finished = true;
-                    self.go_display(buffer);
                     println!("Your score is {}", self.score);
                 }
             }
             Direction::Still => {
                 self.direction = Still;
                 reversed_vector = self.snake.clone();
-                self.go_display(buffer);
             }
         }
         self.snake = reversed_vector;
-        buffer.reset()
     }
 }
 //WORLD CREATION END
@@ -672,7 +671,7 @@ fn main() -> std::io::Result<()> {
     while window.is_open() && !window.is_key_down(Key::Escape) {
         if game_elements.finished == false {
             let elapsed_time = Duration::from_millis(game_elements.snake_speed as u64);
-            let _ = game_elements.handle_user_input(&window, &cli, &mut buffer);
+            let _ = game_elements.handle_user_input(&window, &cli, &buffer);
 
             if instant.elapsed() >= elapsed_time {
                 game_elements.update(&mut buffer, &cli);
