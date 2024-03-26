@@ -33,6 +33,8 @@ pub struct Cli {
     speed_increase: Difficulty,
     #[arg(long, default_value_t = false)]
     bad_berries: bool,
+    #[arg(long, default_value_t = false)]
+    ghost_mode: bool,
 }
 //CLI END
 
@@ -276,10 +278,34 @@ impl World {
                         self.bad_berries.1 += 1;
 
                     } else {
-                        self.direction = Still;
-                        reversed_vector = self.snake.clone();
-                        self.finished = true;
-                        println!("Your score is {}", self.score);
+
+                        if cli.ghost_mode == true && checker == false {
+                            self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, buffer.height() - 1));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+                        
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+
+                        } else {
+                            self.direction = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
                     }
                 }
                 Direction::South => {
@@ -304,10 +330,33 @@ impl World {
                         self.bad_berries.1 += 1;
 
                     } else {
-                        self.direction = Still;
-                        reversed_vector = self.snake.clone();
-                        self.finished = true;
-                        println!("Your score is {}", self.score);
+                        if cli.ghost_mode == true && checker == false {
+                            self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, 0));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+                        
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+
+                        } else {
+                            self.direction = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
                     }
                 }
                 Direction::East => {
@@ -332,10 +381,33 @@ impl World {
                         self.bad_berries.1 += 1;
 
                     } else {
-                        self.direction = Still;
-                        reversed_vector = self.snake.clone();
-                        self.finished = true;
-                        println!("Your score is {}", self.score);
+                        if cli.ghost_mode == true && checker == false {
+                            self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((0, head.1));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+                        
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+
+                        } else {
+                            self.direction = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
                     }
                 }
                 Direction::West => {
@@ -360,10 +432,33 @@ impl World {
                         self.bad_berries.1 += 1;
 
                     } else {
-                        self.direction = Still;
-                        reversed_vector = self.snake.clone();
-                        self.finished = true;
-                        println!("Your score is {}", self.score);
+                        if cli.ghost_mode == true && checker == false {
+                            self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((buffer.width() - 1, head.1));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+                        
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+
+                        } else {
+                            self.direction = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
                     }
                 }
                 Direction::Still => {
@@ -409,10 +504,33 @@ impl World {
                         self.bad_berries.1 += 1;
 
                     } else {
-                        self.direction = Still;
-                        reversed_vector = self.snake.clone();
-                        self.finished = true;
-                        println!("Your score is {}", self.score);
+                        if cli.ghost_mode == true && checker == false {
+                            self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, buffer.height() - 1));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+                        
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+
+                        } else {
+                            self.direction = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
                     }
                 }
                 Direction::South => {
@@ -433,10 +551,33 @@ impl World {
                         self.bad_berries.1 += 1;
 
                     } else {
-                        self.direction = Still;
-                        reversed_vector = self.snake.clone();
-                        self.finished = true;
-                        println!("Your score is {}", self.score);
+                        if cli.ghost_mode == true && checker == false {
+                            self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, 0));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+                        
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+
+                        } else {
+                            self.direction = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
                     }
                 }
                 Direction::East => {
@@ -457,10 +598,33 @@ impl World {
                         self.bad_berries.1 += 1;
 
                     } else {
-                        self.direction = Still;
-                        reversed_vector = self.snake.clone();
-                        self.finished = true;
-                        println!("Your score is {}", self.score);
+                        if cli.ghost_mode == true && checker == false {
+                            self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((0, head.1));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+                        
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+
+                        } else {
+                            self.direction = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
                     }
                 }
                 Direction::West => {
@@ -481,10 +645,33 @@ impl World {
                         self.bad_berries.1 += 1;
 
                     } else {
-                        self.direction = Still;
-                        reversed_vector = self.snake.clone();
-                        self.finished = true;
-                        println!("Your score is {}", self.score);
+                        if cli.ghost_mode == true && checker == false {
+                            self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((buffer.width() - 1, head.1));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+                        
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+
+                        } else {
+                            self.direction = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
                     }
                 }
                 Direction::Still => {
@@ -518,10 +705,22 @@ impl World {
                         self.snake_speed -= 1;
                     }
                 } else {
-                    self.direction = Still;
-                    reversed_vector = self.snake.clone();
-                    self.finished = true;
-                    println!("Your score is {}", self.score);
+
+                    if cli.ghost_mode == true && checker == false {
+                        reversed_vector = self
+                        .snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                    reversed_vector.push((head.0, buffer.height() - 1));
+                    } else {
+                        self.direction = Still;
+                        reversed_vector = self.snake.clone();
+                        self.finished = true;
+                        println!("Your score is {}", self.score);
+                    }
                 }
             }
             Direction::South => {
@@ -538,10 +737,22 @@ impl World {
                         self.snake_speed -= 1;
                     }
                 } else {
-                    self.direction = Still;
-                    reversed_vector = self.snake.clone();
-                    self.finished = true;
-                    println!("Your score is {}", self.score);
+
+                    if cli.ghost_mode == true && checker == false {
+                        reversed_vector = self
+                        .snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                    reversed_vector.push((head.0, 0));
+                    } else {
+                        self.direction = Still;
+                        reversed_vector = self.snake.clone();
+                        self.finished = true;
+                        println!("Your score is {}", self.score);
+                    }
                 }
             }
             Direction::East => {
@@ -558,10 +769,21 @@ impl World {
                         self.snake_speed -= 1;
                     }
                 } else {
-                    self.direction = Still;
-                    reversed_vector = self.snake.clone();
-                    self.finished = true;
-                    println!("Your score is {}", self.score);
+                    if cli.ghost_mode == true && checker == false {
+                        reversed_vector = self
+                        .snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                    reversed_vector.push((0, head.1));
+                    } else {
+                        self.direction = Still;
+                        reversed_vector = self.snake.clone();
+                        self.finished = true;
+                        println!("Your score is {}", self.score);
+                    }
                 }
             }
             Direction::West => {
@@ -578,10 +800,21 @@ impl World {
                         self.snake_speed -= 1;
                     }
                 } else {
-                    self.direction = Still;
-                    reversed_vector = self.snake.clone();
-                    self.finished = true;
-                    println!("Your score is {}", self.score);
+                    if cli.ghost_mode == true && checker == false {
+                        reversed_vector = self
+                        .snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                    reversed_vector = reversed_vector.into_iter().rev().collect();
+                    reversed_vector.push((buffer.width() - 1, head.1));
+                    } else {
+                        self.direction = Still;
+                        reversed_vector = self.snake.clone();
+                        self.finished = true;
+                        println!("Your score is {}", self.score);
+                    }
                 }
             }
             Direction::Still => {
