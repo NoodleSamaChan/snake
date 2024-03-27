@@ -6,12 +6,31 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::time::{Duration, Instant};
 use window_rs::WindowBuffer;
+use std::fmt;
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-enum Difficulty {
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug, Default)]
+pub enum Difficulty {
     Easy,
+    #[default]
     Medium,
     Hard,
+}
+
+impl fmt::Display for Difficulty {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Difficulty::Medium => write!(f, "medium"),
+            Difficulty::Hard => write!(f, "hard"),
+            &Difficulty::Easy => write!(f, "easy"),
+          }
+    }
+}
+
+#[derive(PartialEq)]
+pub enum TimeCycle {
+    Forward,
+    Backward,
+    Pause,
 }
 
 //CLI
@@ -29,7 +48,7 @@ pub struct Cli {
     file_path: Option<String>,
     #[arg(long, default_value_t = 120)]
     snake_speed: usize,
-    #[arg(long)]
+    #[arg(long, default_value_t = Difficulty::Medium)]
     speed_increase: Difficulty,
     #[arg(long, default_value_t = false)]
     bad_berries: bool,
@@ -74,6 +93,8 @@ pub struct World {
     score: usize,
     bad_berries: (usize, usize),
     bad_berries_position: Option<(usize, usize)>,
+    reversed_snake: Vec<(usize, usize)>,
+    time_cycle : TimeCycle,
 }
 
 impl World {
@@ -88,6 +109,8 @@ impl World {
         score: usize,
         bad_berries: (usize, usize),
         bad_berries_position: Option<(usize, usize)>,
+        reversed_snake: Vec<(usize, usize)>,
+        time_cycle : TimeCycle,
     ) -> Self {
         Self {
             direction,
@@ -100,6 +123,8 @@ impl World {
             score,
             bad_berries,
             bad_berries_position,
+            reversed_snake,
+            time_cycle, 
         }
     }
 
@@ -151,6 +176,7 @@ impl World {
         self.snake
             .iter()
             .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(0, 0, u8::MAX));
+        buffer[self.snake[self.snake.len() - 1]] = rgb(u8::MAX, 0, 0);
 
         for x in 0..buffer.width() {
             for y in 0..buffer.height() {
@@ -241,19 +267,26 @@ impl World {
             self.small_break_timer = Instant::now();
         }
 
+        if window.is_key_pressed(Key::R, KeyRepeat::Yes) {
+            self.time_cycle = TimeCycle::Backward;
+        }
+
+        if window.is_key_pressed(Key::F, KeyRepeat::Yes) {
+            self.time_cycle = TimeCycle::Forward;
+        }
+
         Ok(())
     }
 
     pub fn snake_update(&mut self, buffer: &WindowBuffer, cli: &Cli) {
+        let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
+
+        let head = self.snake[self.snake.len() - 1];
+        let mut snake_body = self.snake.clone();            
+        snake_body.pop();
+        let checker = snake_body.iter().any(|(a, b)| (a, b) == (&head.0, &head.1));
+
         if self.snake[self.snake.len() - 1] == self.food {
-            let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
-
-            let head = self.snake[self.snake.len() - 1];
-            let mut snake_body = self.snake.clone();
-            snake_body.pop();
-
-            let checker = snake_body.iter().any(|(a, b)| (a, b) == (&head.0, &head.1));
-
             match self.direction {
                 Direction::North => {
                     if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false
@@ -477,14 +510,6 @@ impl World {
                 self.snake_speed = self.snake_speed * 3;
             } 
 
-            let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
-
-            let head = self.snake[self.snake.len() - 1];
-            let mut snake_body = self.snake.clone();
-            snake_body.pop();
-
-            let checker = snake_body.iter().any(|(a, b)| (a, b) == (&head.0, &head.1));
-
             match self.direction {
                 Direction::North => {
                     if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false
@@ -678,7 +703,8 @@ impl World {
                     reversed_vector = self.snake.clone();
                 }
             }
-            self.snake = reversed_vector;
+        self.reversed_snake.push(reversed_vector[0].clone());
+        self.snake = reversed_vector;
         }
     }
 
@@ -822,7 +848,39 @@ impl World {
                 reversed_vector = self.snake.clone();
             }
         }
+        self.reversed_snake.push(reversed_vector[0].clone());
         self.snake = reversed_vector;
+    }
+
+    pub fn return_in_time(&mut self) {
+        let mut time_turning_snake: Vec<(usize, usize)> = Vec::new();
+
+        let mut previous_position = self.reversed_snake.pop();
+        println!("previous position is {:#?}", previous_position);
+
+        if previous_position.unwrap() == self.snake[0] {
+            previous_position = self.reversed_snake.pop();
+        }
+
+        time_turning_snake = self
+                        .snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[0])
+                        .collect::<Vec<_>>();
+        time_turning_snake = time_turning_snake.into_iter().rev().collect();
+
+        if previous_position != None {
+            time_turning_snake.insert(0, previous_position.unwrap());
+            //time_turning_snake.push(previous_position.unwrap());
+        }
+        println!(" time turning snake is {:#?}", time_turning_snake);
+        self.snake = time_turning_snake;
+    }
+
+    pub fn reversing_snake (&mut self) {
+        let snake_in_right_order: Vec<(usize, usize)> = self.snake.clone().into_iter().rev().collect();
+        self.snake = snake_in_right_order;
     }
 }
 //WORLD CREATION END
@@ -895,6 +953,8 @@ fn main() -> std::io::Result<()> {
         0,
         (0, 0),
         None,
+        Vec::new(),
+        TimeCycle::Forward,
     );
     game_elements.snake_generator(&buffer);
     game_elements.food_generator(&buffer, &cli);
@@ -902,25 +962,45 @@ fn main() -> std::io::Result<()> {
     let mut instant = Instant::now();
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        if game_elements.finished == false {
-            let elapsed_time = Duration::from_millis(game_elements.snake_speed as u64);
-            let _ = game_elements.handle_user_input(&window, &cli, &buffer);
+        let _ = game_elements.handle_user_input(&window, &cli, &buffer);
+        if game_elements.time_cycle == TimeCycle::Forward {
+            if game_elements.finished == false {
+                let elapsed_time = Duration::from_millis(game_elements.snake_speed as u64);
 
+                if instant.elapsed() >= elapsed_time {
+                    game_elements.update(&mut buffer, &cli);
+                    instant = Instant::now();
+                }
+                game_elements.display(&mut buffer);
+
+                } else {
+                game_elements.go_display(&mut buffer);
+                
+            }
+        } else if game_elements.time_cycle == TimeCycle::Backward {
+            let elapsed_time = Duration::from_millis(100);
+            
             if instant.elapsed() >= elapsed_time {
-                game_elements.update(&mut buffer, &cli);
+                game_elements.return_in_time();
                 instant = Instant::now();
             }
             game_elements.display(&mut buffer);
-
-            window
-                .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
-                .unwrap();
-        } else {
-            game_elements.go_display(&mut buffer);
-            window
-                .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
-                .unwrap();
+            game_elements.time_cycle = TimeCycle::Pause;
         }
+        /*if game_elements.time_cycle == TimeCycle::Pause {
+            let elapsed_time = Duration::from_millis(30);
+            
+            if instant.elapsed() >= elapsed_time {
+                game_elements.reversing_snake();
+                instant = Instant::now();
+                game_elements.time_cycle = TimeCycle::Backward;
+            }
+            
+        }*/
+        window
+                    .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
+                    .unwrap();
+            
     }
 
     Ok(())
@@ -953,6 +1033,8 @@ mod test {
             0,
             (0, 0),
             None,
+            Vec::new(),
+            TimeCycle::Forward,
         );
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
@@ -1103,6 +1185,8 @@ mod test {
             0,
             (0, 0),
             None,
+            Vec::new(),
+            TimeCycle::Forward,
         );
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
@@ -1182,6 +1266,8 @@ mod test {
             0,
             (0, 0),
             None,
+            Vec::new(),
+            TimeCycle::Forward,
         );
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
@@ -1262,6 +1348,8 @@ mod test {
             0,
             (0, 0),
             None,
+            Vec::new(),
+            TimeCycle::Forward,
         );
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
@@ -1372,6 +1460,8 @@ mod test {
             0,
             (0, 0),
             None,
+            Vec::new(),
+            TimeCycle::Forward,
         );
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
@@ -1576,4 +1666,90 @@ mod test {
         "###
         );
     }
+
+    #[test]
+    fn snake_turns_time() {
+        let mut buffer: WindowBuffer = WindowBuffer::new(13, 3);
+        let mut game_elements: World = World::new(
+            Direction::East,
+            Vec::new(),
+            (8, 1),
+            false,
+            Instant::now(),
+            0,
+            100,
+            0,
+            (0, 0),
+            None,
+            Vec::new(),
+            TimeCycle::Backward,
+        );
+        game_elements.snake_generator(&buffer);
+        game_elements.display(&mut buffer);
+        game_elements.return_in_time();
+
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###""###
+        );
+
+        assert_debug_snapshot!(
+            game_elements.snake,
+        @r###""###
+        );
+        game_elements.return_in_time();
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###""###
+        );
+
+        assert_debug_snapshot!(
+            game_elements.snake,
+            @r###""###
+        );
+        game_elements.return_in_time();
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###""###
+        );
+        assert_debug_snapshot!(
+            game_elements.snake,
+            @r###""###
+        );
+
+        game_elements.return_in_time();
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###""###
+        );
+        assert_debug_snapshot!(
+            game_elements.snake,
+            @r###""###
+        );
+
+        game_elements.return_in_time();
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###""###
+        );
+        assert_debug_snapshot!(
+            game_elements.snake,
+            @r###""###
+        );
+
+        game_elements.return_in_time();
+        game_elements.display(&mut buffer);
+        assert_snapshot!(
+            buffer.to_string(),
+            @r###""###
+        );
+        assert_debug_snapshot!(
+            game_elements.snake,
+            @r###""###
+        );
+    } 
 }
