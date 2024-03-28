@@ -2,11 +2,11 @@ use crate::Direction::Still;
 use clap::{Parser, ValueEnum};
 use minifb::{Key, KeyRepeat, Window, WindowOptions};
 use rand::Rng;
+use std::fmt;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::time::{Duration, Instant};
 use window_rs::WindowBuffer;
-use std::fmt;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug, Default)]
 pub enum Difficulty {
@@ -22,7 +22,7 @@ impl fmt::Display for Difficulty {
             Difficulty::Medium => write!(f, "medium"),
             Difficulty::Hard => write!(f, "hard"),
             &Difficulty::Easy => write!(f, "easy"),
-          }
+        }
     }
 }
 
@@ -54,6 +54,8 @@ pub struct Cli {
     bad_berries: bool,
     #[arg(long, default_value_t = false)]
     ghost_mode: bool,
+    #[arg(long, default_value_t = false)]
+    two_players_mode: bool,
 }
 //CLI END
 
@@ -71,6 +73,123 @@ pub fn rgb(red: u8, green: u8, blue: u8) -> u32 {
     return final_number;
 }
 //COLOURS MANAGEMENT END
+
+pub fn snake_generator(world: &World, buffer: &WindowBuffer, cli: &Cli) {
+    let x_middle_point = buffer.width() / 2;
+    let y_middle_point = buffer.height() / 2;
+
+    world.snake.push((x_middle_point - 2, y_middle_point));
+    world.snake.push((x_middle_point - 1, y_middle_point));
+    world.snake.push((x_middle_point, y_middle_point));
+
+    if cli.two_players_mode == true && world.second_snake != None {
+        world
+            .second_snake
+            .unwrap()
+            .push((x_middle_point, y_middle_point - 2));
+        world
+            .second_snake
+            .unwrap()
+            .push((x_middle_point - 1, y_middle_point - 2));
+        world
+            .second_snake
+            .unwrap()
+            .push((x_middle_point - 2, y_middle_point - 2));
+    }
+}
+
+pub fn display(world: &World, buffer: &mut WindowBuffer, cli: &Cli) {
+    buffer.reset();
+    world
+        .snake
+        .iter()
+        .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(0, 0, u8::MAX));
+    buffer[world.snake[world.snake.len() - 1]] = rgb(u8::MAX, 0, 0);
+
+    if cli.two_players_mode == true {
+        world
+            .second_snake
+            .clone()
+            .unwrap()
+            .iter()
+            .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(150, 150, 250));
+        if let Some(snake) = &world.second_snake {
+            buffer[snake[snake.len() - 1]] = rgb(u8::MAX, 0, 0);
+        }
+    }
+
+    buffer[world.food] = rgb(0, u8::MAX, 0);
+    if let Some(pos) = world.bad_berries_position {
+        buffer[pos] = rgb(u8::MAX, 0, 0);
+    }
+}
+
+pub fn go_display(world: &World, buffer: &mut WindowBuffer, cli: &Cli) {
+    buffer.reset();
+    world
+        .snake
+        .iter()
+        .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(u8::MAX, 0, 0));
+
+    if cli.two_players_mode == true && world.second_snake != None {
+        world
+            .second_snake
+            .unwrap()
+            .iter()
+            .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(u8::MAX, 0, 0));
+    }
+
+    buffer[world.food] = rgb(u8::MAX, 0, 0);
+}
+
+pub fn return_in_time(world: &mut World, cli: &Cli) {
+    let mut time_turning_snake: Vec<(usize, usize)> = Vec::new();
+
+    let mut previous_position = world.reversed_snake.pop();
+
+    if previous_position.unwrap() == world.snake[0] {
+        previous_position = world.reversed_snake.pop();
+    }
+
+    time_turning_snake = world
+        .snake
+        .windows(2)
+        .rev()
+        .map(|x| x[0])
+        .collect::<Vec<_>>();
+    time_turning_snake = time_turning_snake.into_iter().rev().collect();
+
+    if let Some(pos) = previous_position {
+        time_turning_snake.insert(0, pos);
+    }
+
+    world.snake = time_turning_snake;
+
+    if cli.two_players_mode == true {
+        let mut time_turning_second_snake: Vec<(usize, usize)> = Vec::new();
+
+        let mut previous_position_second_snake = world.reversed_second_snake.unwrap().pop();
+
+        if previous_position_second_snake.unwrap() == world.second_snake.unwrap()[0] {
+            previous_position_second_snake = world.reversed_second_snake.unwrap().pop();
+        }
+
+        time_turning_second_snake = world
+            .second_snake
+            .unwrap()
+            .windows(2)
+            .rev()
+            .map(|x| x[0])
+            .collect::<Vec<_>>();
+        time_turning_second_snake = time_turning_second_snake.into_iter().rev().collect();
+
+        if let Some(pos) = previous_position_second_snake {
+            time_turning_second_snake.insert(0, pos);
+        }
+
+        world.second_snake = Some(time_turning_second_snake);
+    }
+}
 
 #[derive(PartialEq)]
 pub enum Direction {
@@ -94,7 +213,9 @@ pub struct World {
     bad_berries: (usize, usize),
     bad_berries_position: Option<(usize, usize)>,
     reversed_snake: Vec<(usize, usize)>,
-    time_cycle : TimeCycle,
+    time_cycle: TimeCycle,
+    second_snake: Option<Vec<(usize, usize)>>,
+    reversed_second_snake: Option<Vec<(usize, usize)>>,
 }
 
 impl World {
@@ -110,7 +231,9 @@ impl World {
         bad_berries: (usize, usize),
         bad_berries_position: Option<(usize, usize)>,
         reversed_snake: Vec<(usize, usize)>,
-        time_cycle : TimeCycle,
+        time_cycle: TimeCycle,
+        second_snake: Option<Vec<(usize, usize)>>,
+        reversed_second_snake: Option<Vec<(usize, usize)>>,
     ) -> Self {
         Self {
             direction,
@@ -124,7 +247,9 @@ impl World {
             bad_berries,
             bad_berries_position,
             reversed_snake,
-            time_cycle, 
+            time_cycle,
+            second_snake,
+            reversed_second_snake,
         }
     }
 
@@ -153,8 +278,7 @@ impl World {
                 continue;
             } else {
                 self.food = (x, y);
-                if cli.bad_berries == true
-                {
+                if cli.bad_berries == true {
                     self.bad_berries_position = Some((v, w));
                 }
                 return;
@@ -184,14 +308,19 @@ impl World {
                     && self.snake[self.snake.len() - 1] != (x, y)
                 {
                     buffer[(x, y)] = rgb(0, u8::MAX, 0);
-                } if (self.bad_berries_position != None)
-                    && (x, y) == (self.bad_berries_position.unwrap().0, self.bad_berries_position.unwrap().1,) && self.snake[self.snake.len() - 1] != (x, y)
+                }
+                if (self.bad_berries_position != None)
+                    && (x, y)
+                        == (
+                            self.bad_berries_position.unwrap().0,
+                            self.bad_berries_position.unwrap().1,
+                        )
+                    && self.snake[self.snake.len() - 1] != (x, y)
                 {
                     buffer[(x, y)] = rgb(u8::MAX, 0, 0);
                 }
             }
         }
-        
     }
 
     pub fn go_display(&self, buffer: &mut WindowBuffer) {
@@ -215,7 +344,7 @@ impl World {
         &mut self,
         window: &Window,
         cli: &Cli,
-        buffer: & WindowBuffer,
+        buffer: &WindowBuffer,
     ) -> std::io::Result<()> {
         if window.is_key_pressed(Key::Q, KeyRepeat::No) {
             self.reset();
@@ -282,7 +411,7 @@ impl World {
         let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
 
         let head = self.snake[self.snake.len() - 1];
-        let mut snake_body = self.snake.clone();            
+        let mut snake_body = self.snake.clone();
         snake_body.pop();
         let checker = snake_body.iter().any(|(a, b)| (a, b) == (&head.0, &head.1));
 
@@ -306,33 +435,29 @@ impl World {
                         }
 
                         self.food_generator(&buffer, cli);
-                        
+
                         self.score += 10;
                         self.bad_berries.1 += 1;
-
                     } else {
-
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
-                            .windows(2)
-                            .rev()
-                            .map(|x| x[1])
-                            .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0, buffer.height() - 1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, buffer.height() - 1));
 
-                        if cli.speed_increase == Difficulty::Hard {
-                            self.snake_speed = 120;
-                        }
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
 
-                        self.food_generator(&buffer, cli);
-                        
-                        self.score += 10;
-                        self.bad_berries.1 += 1;
+                            self.food_generator(&buffer, cli);
 
-
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
@@ -361,29 +486,26 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
-
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
-                            .windows(2)
-                            .rev()
-                            .map(|x| x[1])
-                            .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0, 0));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, 0));
 
-                        if cli.speed_increase == Difficulty::Hard {
-                            self.snake_speed = 120;
-                        }
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
 
-                        self.food_generator(&buffer, cli);
-                        
-                        self.score += 10;
-                        self.bad_berries.1 += 1;
+                            self.food_generator(&buffer, cli);
 
-
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
@@ -412,29 +534,26 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
-
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
-                            .windows(2)
-                            .rev()
-                            .map(|x| x[1])
-                            .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((0, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((0, head.1));
 
-                        if cli.speed_increase == Difficulty::Hard {
-                            self.snake_speed = 120;
-                        }
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
 
-                        self.food_generator(&buffer, cli);
-                        
-                        self.score += 10;
-                        self.bad_berries.1 += 1;
+                            self.food_generator(&buffer, cli);
 
-
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
@@ -463,29 +582,26 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
-
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
-                            .windows(2)
-                            .rev()
-                            .map(|x| x[1])
-                            .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((buffer.width() - 1, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((buffer.width() - 1, head.1));
 
-                        if cli.speed_increase == Difficulty::Hard {
-                            self.snake_speed = 120;
-                        }
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
 
-                        self.food_generator(&buffer, cli);
-                        
-                        self.score += 10;
-                        self.bad_berries.1 += 1;
+                            self.food_generator(&buffer, cli);
 
-
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
@@ -508,7 +624,7 @@ impl World {
                 self.snake_speed = self.snake_speed / 3;
             } else if (self.bad_berries.0 > 1) && (self.bad_berries.0 % 2 == 0) {
                 self.snake_speed = self.snake_speed * 3;
-            } 
+            }
 
             match self.direction {
                 Direction::North => {
@@ -527,29 +643,26 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
-
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
-                            .windows(2)
-                            .rev()
-                            .map(|x| x[1])
-                            .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0, buffer.height() - 1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, buffer.height() - 1));
 
-                        if cli.speed_increase == Difficulty::Hard {
-                            self.snake_speed = 120;
-                        }
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
 
-                        self.food_generator(&buffer, cli);
-                        
-                        self.score += 10;
-                        self.bad_berries.1 += 1;
+                            self.food_generator(&buffer, cli);
 
-
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
@@ -574,29 +687,26 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
-
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
-                            .windows(2)
-                            .rev()
-                            .map(|x| x[1])
-                            .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0, 0));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, 0));
 
-                        if cli.speed_increase == Difficulty::Hard {
-                            self.snake_speed = 120;
-                        }
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
 
-                        self.food_generator(&buffer, cli);
-                        
-                        self.score += 10;
-                        self.bad_berries.1 += 1;
+                            self.food_generator(&buffer, cli);
 
-
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
@@ -621,29 +731,26 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
-
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
-                            .windows(2)
-                            .rev()
-                            .map(|x| x[1])
-                            .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((0, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((0, head.1));
 
-                        if cli.speed_increase == Difficulty::Hard {
-                            self.snake_speed = 120;
-                        }
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
 
-                        self.food_generator(&buffer, cli);
-                        
-                        self.score += 10;
-                        self.bad_berries.1 += 1;
+                            self.food_generator(&buffer, cli);
 
-
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
@@ -668,29 +775,26 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
-
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
-                            .windows(2)
-                            .rev()
-                            .map(|x| x[1])
-                            .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((buffer.width() - 1, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((buffer.width() - 1, head.1));
 
-                        if cli.speed_increase == Difficulty::Hard {
-                            self.snake_speed = 120;
-                        }
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
 
-                        self.food_generator(&buffer, cli);
-                        
-                        self.score += 10;
-                        self.bad_berries.1 += 1;
+                            self.food_generator(&buffer, cli);
 
-
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
@@ -703,8 +807,8 @@ impl World {
                     reversed_vector = self.snake.clone();
                 }
             }
-        self.reversed_snake.push(reversed_vector[0].clone());
-        self.snake = reversed_vector;
+            self.reversed_snake.push(reversed_vector[0].clone());
+            self.snake = reversed_vector;
         }
     }
 
@@ -731,16 +835,15 @@ impl World {
                         self.snake_speed -= 1;
                     }
                 } else {
-
                     if cli.ghost_mode == true && checker == false {
                         reversed_vector = self
-                        .snake
-                        .windows(2)
-                        .rev()
-                        .map(|x| x[1])
-                        .collect::<Vec<_>>();
-                    reversed_vector = reversed_vector.into_iter().rev().collect();
-                    reversed_vector.push((head.0, buffer.height() - 1));
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, buffer.height() - 1));
                     } else {
                         self.direction = Still;
                         reversed_vector = self.snake.clone();
@@ -763,16 +866,15 @@ impl World {
                         self.snake_speed -= 1;
                     }
                 } else {
-
                     if cli.ghost_mode == true && checker == false {
                         reversed_vector = self
-                        .snake
-                        .windows(2)
-                        .rev()
-                        .map(|x| x[1])
-                        .collect::<Vec<_>>();
-                    reversed_vector = reversed_vector.into_iter().rev().collect();
-                    reversed_vector.push((head.0, 0));
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, 0));
                     } else {
                         self.direction = Still;
                         reversed_vector = self.snake.clone();
@@ -797,13 +899,13 @@ impl World {
                 } else {
                     if cli.ghost_mode == true && checker == false {
                         reversed_vector = self
-                        .snake
-                        .windows(2)
-                        .rev()
-                        .map(|x| x[1])
-                        .collect::<Vec<_>>();
-                    reversed_vector = reversed_vector.into_iter().rev().collect();
-                    reversed_vector.push((0, head.1));
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((0, head.1));
                     } else {
                         self.direction = Still;
                         reversed_vector = self.snake.clone();
@@ -828,13 +930,13 @@ impl World {
                 } else {
                     if cli.ghost_mode == true && checker == false {
                         reversed_vector = self
-                        .snake
-                        .windows(2)
-                        .rev()
-                        .map(|x| x[1])
-                        .collect::<Vec<_>>();
-                    reversed_vector = reversed_vector.into_iter().rev().collect();
-                    reversed_vector.push((buffer.width() - 1, head.1));
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((buffer.width() - 1, head.1));
                     } else {
                         self.direction = Still;
                         reversed_vector = self.snake.clone();
@@ -863,11 +965,11 @@ impl World {
         }
 
         time_turning_snake = self
-                        .snake
-                        .windows(2)
-                        .rev()
-                        .map(|x| x[0])
-                        .collect::<Vec<_>>();
+            .snake
+            .windows(2)
+            .rev()
+            .map(|x| x[0])
+            .collect::<Vec<_>>();
         time_turning_snake = time_turning_snake.into_iter().rev().collect();
 
         if previous_position != None {
@@ -876,11 +978,6 @@ impl World {
         }
         println!(" time turning snake is {:#?}", time_turning_snake);
         self.snake = time_turning_snake;
-    }
-
-    pub fn reversing_snake (&mut self) {
-        let snake_in_right_order: Vec<(usize, usize)> = self.snake.clone().into_iter().rev().collect();
-        self.snake = snake_in_right_order;
     }
 }
 //WORLD CREATION END
@@ -955,6 +1052,8 @@ fn main() -> std::io::Result<()> {
         None,
         Vec::new(),
         TimeCycle::Forward,
+        None,
+        None,
     );
     game_elements.snake_generator(&buffer);
     game_elements.food_generator(&buffer, &cli);
@@ -972,14 +1071,12 @@ fn main() -> std::io::Result<()> {
                     instant = Instant::now();
                 }
                 game_elements.display(&mut buffer);
-
-                } else {
+            } else {
                 game_elements.go_display(&mut buffer);
-                
             }
         } else if game_elements.time_cycle == TimeCycle::Backward {
             let elapsed_time = Duration::from_millis(100);
-            
+
             if instant.elapsed() >= elapsed_time {
                 game_elements.return_in_time();
                 instant = Instant::now();
@@ -989,18 +1086,17 @@ fn main() -> std::io::Result<()> {
         }
         /*if game_elements.time_cycle == TimeCycle::Pause {
             let elapsed_time = Duration::from_millis(30);
-            
+
             if instant.elapsed() >= elapsed_time {
                 game_elements.reversing_snake();
                 instant = Instant::now();
                 game_elements.time_cycle = TimeCycle::Backward;
             }
-            
+
         }*/
         window
-                    .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
-                    .unwrap();
-            
+            .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
+            .unwrap();
     }
 
     Ok(())
@@ -1035,6 +1131,8 @@ mod test {
             None,
             Vec::new(),
             TimeCycle::Forward,
+            None,
+            None,
         );
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
@@ -1187,6 +1285,8 @@ mod test {
             None,
             Vec::new(),
             TimeCycle::Forward,
+            None,
+            None,
         );
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
@@ -1268,6 +1368,8 @@ mod test {
             None,
             Vec::new(),
             TimeCycle::Forward,
+            None,
+            None,
         );
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
@@ -1350,6 +1452,8 @@ mod test {
             None,
             Vec::new(),
             TimeCycle::Forward,
+            None,
+            None,
         );
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
@@ -1462,6 +1566,8 @@ mod test {
             None,
             Vec::new(),
             TimeCycle::Forward,
+            None,
+            None,
         );
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
@@ -1683,6 +1789,8 @@ mod test {
             None,
             Vec::new(),
             TimeCycle::Backward,
+            None,
+            None,
         );
         game_elements.snake_generator(&buffer);
         game_elements.display(&mut buffer);
@@ -1751,5 +1859,5 @@ mod test {
             game_elements.snake,
             @r###""###
         );
-    } 
+    }
 }
