@@ -82,20 +82,21 @@ pub fn snake_generator(world: &mut World, buffer: &WindowBuffer, cli: &Cli) {
     world.snake.push((x_middle_point - 1, y_middle_point));
     world.snake.push((x_middle_point, y_middle_point));
 
-    if cli.two_players_mode == true && world.second_snake != None {
+    if cli.two_players_mode == true {
+        println!("LOOP OF SECOND SNAKE");
         world
             .second_snake
-            .clone()
+            .as_mut()
             .unwrap()
             .push((x_middle_point, y_middle_point - 2));
         world
             .second_snake
-            .clone()
+            .as_mut()
             .unwrap()
             .push((x_middle_point - 1, y_middle_point - 2));
         world
             .second_snake
-            .clone()
+            .as_mut()
             .unwrap()
             .push((x_middle_point - 2, y_middle_point - 2));
     }
@@ -109,16 +110,16 @@ pub fn display(world: &World, buffer: &mut WindowBuffer, cli: &Cli) {
         .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(0, 0, u8::MAX));
     buffer[world.snake[world.snake.len() - 1]] = rgb(u8::MAX, 0, 0);
 
-    if cli.two_players_mode == true {
+    if cli.two_players_mode == true && world.second_snake != None {
         world
             .second_snake
             .clone()
             .unwrap()
             .iter()
             .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(150, 150, 250));
-        if let Some(snake) = &world.second_snake {
-            buffer[snake[snake.len() - 1]] = rgb(u8::MAX, 0, 0);
-        }
+    if let Some(second_snake) = &world.second_snake {
+        buffer[second_snake[second_snake.len() - 1]] = rgb(u8::MAX, 0, 0);
+    }
     }
 
     buffer[world.food] = rgb(0, u8::MAX, 0);
@@ -169,7 +170,6 @@ pub fn return_in_time(world: &mut World, cli: &Cli) {
     }
 
     world.snake = time_turning_snake;
-
     }
     
 
@@ -302,15 +302,6 @@ impl World {
         }
     }
 
-    pub fn snake_generator(&mut self, buffer: &WindowBuffer) {
-        let x_middle_point = buffer.width() / 2;
-        let y_middle_point = buffer.height() / 2;
-
-        self.snake.push((x_middle_point - 2, y_middle_point));
-        self.snake.push((x_middle_point - 1, y_middle_point));
-        self.snake.push((x_middle_point, y_middle_point));
-    }
-
     pub fn display(&self, buffer: &mut WindowBuffer) {
         buffer.reset();
         self.snake
@@ -391,21 +382,11 @@ impl World {
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::South {
                 self.direction = Direction::North;
             }
-            if cli.two_players_mode == true {
-                if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::South {
-                    self.direction = Direction::North;
-                }
-            }
         }
 
         if window.is_key_pressed(Key::Down, KeyRepeat::Yes) {
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::North {
                 self.direction = Direction::South;
-            }
-            if cli.two_players_mode == true {
-                if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::North {
-                    self.direction = Direction::South;
-                }
             }
         }
 
@@ -413,6 +394,31 @@ impl World {
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::East {
                 self.direction = Direction::West;
             }
+        }
+
+        if window.is_key_pressed(Key::Right, KeyRepeat::Yes) {
+            if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::West {
+                self.direction = Direction::East;
+            }
+        }
+
+        if window.is_key_pressed(Key::U, KeyRepeat::Yes) {
+            if cli.two_players_mode == true {
+                if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::South {
+                    self.direction = Direction::North;
+                }
+            }
+        }
+
+        if window.is_key_pressed(Key::N, KeyRepeat::Yes) {
+            if cli.two_players_mode == true {
+                if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::North {
+                    self.direction = Direction::South;
+                }
+            }
+        }
+
+        if window.is_key_pressed(Key::H, KeyRepeat::Yes) {
             if cli.two_players_mode == true {
                 if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::East {
                     self.direction = Direction::West;
@@ -420,10 +426,7 @@ impl World {
             }
         }
 
-        if window.is_key_pressed(Key::Right, KeyRepeat::Yes) {
-            if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::West {
-                self.direction = Direction::East;
-            }
+        if window.is_key_pressed(Key::J, KeyRepeat::Yes) {
             if cli.two_players_mode == true {
                 if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::West {
                     self.direction = Direction::East;
@@ -1287,9 +1290,9 @@ fn main() -> std::io::Result<()> {
         None,
         Vec::new(),
         TimeCycle::Forward,
-        None,
+        Some(Vec::new()),
         vec![Direction::Still],
-        None,
+        Some(Vec::new()),
     );
     game_elements.food_generator(&buffer, &cli);
     snake_generator(&mut game_elements, &buffer, &cli);
@@ -1343,6 +1346,24 @@ mod test {
     #[test]
     fn snake_moves_east() {
         let cli = Cli::parse();
+        let mut world = World::new(
+        Direction::Still,
+        vec![Direction::Still],
+        Vec::new(),
+        (0, 0),
+        false,
+        Instant::now(),
+        0,
+        cli.snake_speed,
+        0,
+        (0, 0),
+        None,
+        Vec::new(),
+        TimeCycle::Forward,
+        None,
+        vec![Direction::Still],
+        None,
+    );
         let mut buffer: WindowBuffer = WindowBuffer::new(8, 6);
         let mut game_elements: World = World::new(
             Direction::East,
@@ -1362,7 +1383,7 @@ mod test {
             Vec::new(),
             None,
         );
-        game_elements.snake_generator(&buffer);
+        snake_generator(&mut game_elements, &buffer, &cli);
         game_elements.display(&mut buffer);
 
         assert_snapshot!(
@@ -1518,7 +1539,7 @@ mod test {
             Vec::new(),
             None,
         );
-        game_elements.snake_generator(&buffer);
+        snake_generator(&mut game_elements, &buffer, &cli);
         game_elements.display(&mut buffer);
 
         assert_snapshot!(
@@ -1586,7 +1607,7 @@ mod test {
         let cli = Cli::parse();
         let mut buffer: WindowBuffer = WindowBuffer::new(8, 8);
         let mut game_elements: World = World::new(
-            Direction::South,
+            Direction::North,
             Vec::new(),
             Vec::new(),
             (0, 0),
@@ -1603,7 +1624,7 @@ mod test {
             Vec::new(),
             None,
         );
-        game_elements.snake_generator(&buffer);
+        snake_generator(&mut game_elements, &buffer, &cli);
         game_elements.display(&mut buffer);
 
         assert_snapshot!(
@@ -1689,7 +1710,7 @@ mod test {
             Vec::new(),
             None,
         );
-        game_elements.snake_generator(&buffer);
+        snake_generator(&mut game_elements, &buffer, &cli);
         game_elements.display(&mut buffer);
 
         assert_snapshot!(
@@ -1805,7 +1826,7 @@ mod test {
             Vec::new(),
             None,
         );
-        game_elements.snake_generator(&buffer);
+        snake_generator(&mut game_elements, &buffer, &cli);
         game_elements.display(&mut buffer);
         game_elements.snake_update(&mut buffer, &cli);
 
@@ -2011,6 +2032,7 @@ mod test {
 
     #[test]
     fn snake_turns_time() {
+        let cli = Cli::parse();
         let mut buffer: WindowBuffer = WindowBuffer::new(13, 3);
         let mut game_elements: World = World::new(
             Direction::East,
@@ -2030,7 +2052,7 @@ mod test {
             Vec::new(),
             None,
         );
-        game_elements.snake_generator(&buffer);
+        snake_generator(&mut game_elements, &buffer, &cli);
         game_elements.display(&mut buffer);
         game_elements.return_in_time();
 
