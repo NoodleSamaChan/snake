@@ -74,7 +74,7 @@ pub fn rgb(red: u8, green: u8, blue: u8) -> u32 {
 }
 //COLOURS MANAGEMENT END
 
-pub fn snake_generator(world: &World, buffer: &WindowBuffer, cli: &Cli) {
+pub fn snake_generator(world: &mut World, buffer: &WindowBuffer, cli: &Cli) {
     let x_middle_point = buffer.width() / 2;
     let y_middle_point = buffer.height() / 2;
 
@@ -85,14 +85,17 @@ pub fn snake_generator(world: &World, buffer: &WindowBuffer, cli: &Cli) {
     if cli.two_players_mode == true && world.second_snake != None {
         world
             .second_snake
+            .clone()
             .unwrap()
             .push((x_middle_point, y_middle_point - 2));
         world
             .second_snake
+            .clone()
             .unwrap()
             .push((x_middle_point - 1, y_middle_point - 2));
         world
             .second_snake
+            .clone()
             .unwrap()
             .push((x_middle_point - 2, y_middle_point - 2));
     }
@@ -124,7 +127,7 @@ pub fn display(world: &World, buffer: &mut WindowBuffer, cli: &Cli) {
     }
 }
 
-pub fn go_display(world: &World, buffer: &mut WindowBuffer, cli: &Cli) {
+pub fn go_display(world: &mut World, buffer: &mut WindowBuffer, cli: &Cli) {
     buffer.reset();
     world
         .snake
@@ -134,6 +137,7 @@ pub fn go_display(world: &World, buffer: &mut WindowBuffer, cli: &Cli) {
     if cli.two_players_mode == true && world.second_snake != None {
         world
             .second_snake
+            .clone()
             .unwrap()
             .iter()
             .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(u8::MAX, 0, 0));
@@ -143,7 +147,8 @@ pub fn go_display(world: &World, buffer: &mut WindowBuffer, cli: &Cli) {
 }
 
 pub fn return_in_time(world: &mut World, cli: &Cli) {
-    let mut time_turning_snake: Vec<(usize, usize)> = Vec::new();
+    if world.reversed_snake.is_empty() == false {
+        let mut time_turning_snake: Vec<(usize, usize)> = Vec::new();
 
     let mut previous_position = world.reversed_snake.pop();
 
@@ -165,17 +170,21 @@ pub fn return_in_time(world: &mut World, cli: &Cli) {
 
     world.snake = time_turning_snake;
 
-    if cli.two_players_mode == true {
+    }
+    
+
+    if cli.two_players_mode == true && world.reversed_second_snake != None {
         let mut time_turning_second_snake: Vec<(usize, usize)> = Vec::new();
 
-        let mut previous_position_second_snake = world.reversed_second_snake.unwrap().pop();
+        let mut previous_position_second_snake = world.reversed_second_snake.clone().unwrap().pop();
 
-        if previous_position_second_snake.unwrap() == world.second_snake.unwrap()[0] {
-            previous_position_second_snake = world.reversed_second_snake.unwrap().pop();
+        if previous_position_second_snake.unwrap() == world.second_snake.clone().unwrap()[0] {
+            previous_position_second_snake = world.reversed_second_snake.clone().unwrap().pop();
         }
 
         time_turning_second_snake = world
             .second_snake
+            .clone()
             .unwrap()
             .windows(2)
             .rev()
@@ -1055,8 +1064,8 @@ fn main() -> std::io::Result<()> {
         None,
         None,
     );
-    game_elements.snake_generator(&buffer);
     game_elements.food_generator(&buffer, &cli);
+    snake_generator(&mut game_elements, &buffer, &cli);
 
     let mut instant = Instant::now();
 
@@ -1070,30 +1079,20 @@ fn main() -> std::io::Result<()> {
                     game_elements.update(&mut buffer, &cli);
                     instant = Instant::now();
                 }
-                game_elements.display(&mut buffer);
+                display(&game_elements, &mut buffer, &cli);
             } else {
-                game_elements.go_display(&mut buffer);
+                go_display(&mut game_elements, &mut buffer, &cli);
             }
         } else if game_elements.time_cycle == TimeCycle::Backward {
             let elapsed_time = Duration::from_millis(100);
 
             if instant.elapsed() >= elapsed_time {
-                game_elements.return_in_time();
+                return_in_time(&mut game_elements, &cli);
                 instant = Instant::now();
             }
-            game_elements.display(&mut buffer);
+            display(&game_elements, &mut buffer, &cli);
             game_elements.time_cycle = TimeCycle::Pause;
         }
-        /*if game_elements.time_cycle == TimeCycle::Pause {
-            let elapsed_time = Duration::from_millis(30);
-
-            if instant.elapsed() >= elapsed_time {
-                game_elements.reversing_snake();
-                instant = Instant::now();
-                game_elements.time_cycle = TimeCycle::Backward;
-            }
-
-        }*/
         window
             .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
             .unwrap();
