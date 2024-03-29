@@ -212,6 +212,7 @@ pub enum Direction {
 //WORLD CREATION
 pub struct World {
     direction: Direction,
+    first_snake_directions : Vec<Direction>,
     snake: Vec<(usize, usize)>,
     food: (usize, usize),
     finished: bool,
@@ -224,12 +225,15 @@ pub struct World {
     reversed_snake: Vec<(usize, usize)>,
     time_cycle: TimeCycle,
     second_snake: Option<Vec<(usize, usize)>>,
+    second_snake_directions : Vec<Direction>,
     reversed_second_snake: Option<Vec<(usize, usize)>>,
+
 }
 
 impl World {
     pub fn new(
         direction: Direction,
+        first_snake_directions : Vec<Direction>,
         snake: Vec<(usize, usize)>,
         food: (usize, usize),
         finished: bool,
@@ -242,10 +246,12 @@ impl World {
         reversed_snake: Vec<(usize, usize)>,
         time_cycle: TimeCycle,
         second_snake: Option<Vec<(usize, usize)>>,
+        second_snake_directions : Vec<Direction>,
         reversed_second_snake: Option<Vec<(usize, usize)>>,
     ) -> Self {
         Self {
             direction,
+            first_snake_directions,
             snake,
             food,
             finished,
@@ -258,6 +264,7 @@ impl World {
             reversed_snake,
             time_cycle,
             second_snake,
+            second_snake_directions,
             reversed_second_snake,
         }
     }
@@ -381,19 +388,47 @@ impl World {
         }
 
         if window.is_key_pressed(Key::Up, KeyRepeat::Yes) {
-            self.direction = Direction::North;
+            if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::South {
+                self.direction = Direction::North;
+            }
+            if cli.two_players_mode == true {
+                if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::South {
+                    self.direction = Direction::North;
+                }
+            }
         }
 
         if window.is_key_pressed(Key::Down, KeyRepeat::Yes) {
-            self.direction = Direction::South;
+            if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::North {
+                self.direction = Direction::South;
+            }
+            if cli.two_players_mode == true {
+                if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::North {
+                    self.direction = Direction::South;
+                }
+            }
         }
 
         if window.is_key_pressed(Key::Left, KeyRepeat::Yes) {
-            self.direction = Direction::West;
+            if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::East {
+                self.direction = Direction::West;
+            }
+            if cli.two_players_mode == true {
+                if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::East {
+                    self.direction = Direction::West;
+                }
+            }
         }
 
         if window.is_key_pressed(Key::Right, KeyRepeat::Yes) {
-            self.direction = Direction::East;
+            if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::West {
+                self.direction = Direction::East;
+            }
+            if cli.two_players_mode == true {
+                if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::West {
+                    self.direction = Direction::East;
+                }
+            }
         }
 
         let small_break = Duration::from_millis(0);
@@ -447,6 +482,11 @@ impl World {
 
                         self.score += 10;
                         self.bad_berries.1 += 1;
+
+                        self.first_snake_directions.push(Direction::North);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::North);
+                        }
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
@@ -467,11 +507,21 @@ impl World {
 
                             self.score += 10;
                             self.bad_berries.1 += 1;
+
+                            self.first_snake_directions.push(Direction::North);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::North);
+                            }
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
+
+                            self.first_snake_directions.push(Direction::Still);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::Still);
+                            }
                         }
                     }
                 }
@@ -495,6 +545,11 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
+
+                        self.first_snake_directions.push(Direction::South);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::South);
+                        }
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
@@ -515,11 +570,21 @@ impl World {
 
                             self.score += 10;
                             self.bad_berries.1 += 1;
+
+                            self.first_snake_directions.push(Direction::South);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::South);
+                            }
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
+
+                            self.first_snake_directions.push(Direction::Still);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::Still);
+                            }
                         }
                     }
                 }
@@ -543,6 +608,11 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
+
+                        self.first_snake_directions.push(Direction::East);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::East);
+                            }
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
@@ -563,11 +633,20 @@ impl World {
 
                             self.score += 10;
                             self.bad_berries.1 += 1;
+                            self.first_snake_directions.push(Direction::East);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::East);
+                            }
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
+
+                            self.first_snake_directions.push(Direction::Still);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::Still);
+                            }
                         }
                     }
                 }
@@ -591,6 +670,11 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
+
+                        self.first_snake_directions.push(Direction::West);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::West);
+                            }
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
@@ -611,16 +695,30 @@ impl World {
 
                             self.score += 10;
                             self.bad_berries.1 += 1;
+
+                            self.first_snake_directions.push(Direction::West);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::West);
+                            }
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
+
+                            self.first_snake_directions.push(Direction::Still);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::Still);
+                            }
                         }
                     }
                 }
                 Direction::Still => {
                     reversed_vector = self.snake.clone();
+                    self.first_snake_directions.push(Direction::Still);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::Still);
+                            }
                 }
             }
             self.snake = reversed_vector;
@@ -652,6 +750,11 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
+
+                        self.first_snake_directions.push(Direction::North);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::North);
+                            }
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
@@ -672,11 +775,21 @@ impl World {
 
                             self.score += 10;
                             self.bad_berries.1 += 1;
+
+                            self.first_snake_directions.push(Direction::North);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::North);
+                            }
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
+
+                            self.first_snake_directions.push(Direction::Still);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::Still);
+                            }
                         }
                     }
                 }
@@ -696,6 +809,11 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
+
+                        self.first_snake_directions.push(Direction::South);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::South);
+                        }
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
@@ -716,11 +834,21 @@ impl World {
 
                             self.score += 10;
                             self.bad_berries.1 += 1;
+
+                            self.first_snake_directions.push(Direction::South);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::South);
+                            }
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
+
+                            self.first_snake_directions.push(Direction::Still);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::Still);
+                            }
                         }
                     }
                 }
@@ -740,6 +868,11 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
+
+                        self.first_snake_directions.push(Direction::East);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::East);
+                        }
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
@@ -760,11 +893,21 @@ impl World {
 
                             self.score += 10;
                             self.bad_berries.1 += 1;
+
+                            self.first_snake_directions.push(Direction::East);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::East);
+                            }
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
+
+                            self.first_snake_directions.push(Direction::Still);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::Still);
+                            }
                         }
                     }
                 }
@@ -784,6 +927,11 @@ impl World {
                         self.food_generator(&buffer, cli);
                         self.score += 10;
                         self.bad_berries.1 += 1;
+
+                        self.first_snake_directions.push(Direction::West);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::West);
+                        }
                     } else {
                         if cli.ghost_mode == true && checker == false {
                             self.snake.push((head.0, head.1));
@@ -804,16 +952,30 @@ impl World {
 
                             self.score += 10;
                             self.bad_berries.1 += 1;
+
+                            self.first_snake_directions.push(Direction::West);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::West);
+                            }
                         } else {
                             self.direction = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
+
+                            self.first_snake_directions.push(Direction::Still);
+                            if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::Still);
+                            }
                         }
                     }
                 }
                 Direction::Still => {
                     reversed_vector = self.snake.clone();
+                    self.first_snake_directions.push(Direction::Still);
+                    if cli.two_players_mode == true {
+                        self.second_snake_directions.push(Direction::Still);
+                    }
                 }
             }
             self.reversed_snake.push(reversed_vector[0].clone());
@@ -843,6 +1005,11 @@ impl World {
                     if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
                         self.snake_speed -= 1;
                     }
+
+                    self.first_snake_directions.push(Direction::North);
+                    if cli.two_players_mode == true {
+                        self.second_snake_directions.push(Direction::North);
+                    }
                 } else {
                     if cli.ghost_mode == true && checker == false {
                         reversed_vector = self
@@ -853,11 +1020,21 @@ impl World {
                             .collect::<Vec<_>>();
                         reversed_vector = reversed_vector.into_iter().rev().collect();
                         reversed_vector.push((head.0, buffer.height() - 1));
+
+                        self.first_snake_directions.push(Direction::North);
+                        if cli.two_players_mode == true {
+                                self.second_snake_directions.push(Direction::North);
+                        }
                     } else {
                         self.direction = Still;
                         reversed_vector = self.snake.clone();
                         self.finished = true;
                         println!("Your score is {}", self.score);
+
+                        self.first_snake_directions.push(Direction::Still);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::Still);
+                        }
                     }
                 }
             }
@@ -874,6 +1051,11 @@ impl World {
                     if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
                         self.snake_speed -= 1;
                     }
+
+                    self.first_snake_directions.push(Direction::South);
+                    if cli.two_players_mode == true {
+                        self.second_snake_directions.push(Direction::South);
+                    }
                 } else {
                     if cli.ghost_mode == true && checker == false {
                         reversed_vector = self
@@ -884,11 +1066,20 @@ impl World {
                             .collect::<Vec<_>>();
                         reversed_vector = reversed_vector.into_iter().rev().collect();
                         reversed_vector.push((head.0, 0));
+                        self.first_snake_directions.push(Direction::South);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::South);
+                        }
                     } else {
                         self.direction = Still;
                         reversed_vector = self.snake.clone();
                         self.finished = true;
                         println!("Your score is {}", self.score);
+
+                        self.first_snake_directions.push(Direction::Still);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::Still);
+                        }
                     }
                 }
             }
@@ -905,6 +1096,11 @@ impl World {
                     if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
                         self.snake_speed -= 1;
                     }
+
+                    self.first_snake_directions.push(Direction::East);
+                    if cli.two_players_mode == true {
+                        self.second_snake_directions.push(Direction::East);
+                    }
                 } else {
                     if cli.ghost_mode == true && checker == false {
                         reversed_vector = self
@@ -915,11 +1111,21 @@ impl World {
                             .collect::<Vec<_>>();
                         reversed_vector = reversed_vector.into_iter().rev().collect();
                         reversed_vector.push((0, head.1));
+
+                        self.first_snake_directions.push(Direction::East);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::East);
+                        }
                     } else {
                         self.direction = Still;
                         reversed_vector = self.snake.clone();
                         self.finished = true;
                         println!("Your score is {}", self.score);
+
+                        self.first_snake_directions.push(Direction::Still);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::Still);
+                        }
                     }
                 }
             }
@@ -936,6 +1142,11 @@ impl World {
                     if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
                         self.snake_speed -= 1;
                     }
+
+                    self.first_snake_directions.push(Direction::West);
+                    if cli.two_players_mode == true {
+                        self.second_snake_directions.push(Direction::West);
+                    }
                 } else {
                     if cli.ghost_mode == true && checker == false {
                         reversed_vector = self
@@ -946,17 +1157,31 @@ impl World {
                             .collect::<Vec<_>>();
                         reversed_vector = reversed_vector.into_iter().rev().collect();
                         reversed_vector.push((buffer.width() - 1, head.1));
+
+                        self.first_snake_directions.push(Direction::West);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::West);
+                        }
                     } else {
                         self.direction = Still;
                         reversed_vector = self.snake.clone();
                         self.finished = true;
                         println!("Your score is {}", self.score);
+
+                        self.first_snake_directions.push(Direction::Still);
+                        if cli.two_players_mode == true {
+                            self.second_snake_directions.push(Direction::Still);
+                        }
                     }
                 }
             }
             Direction::Still => {
                 self.direction = Still;
                 reversed_vector = self.snake.clone();
+                self.first_snake_directions.push(Direction::Still);
+                if cli.two_players_mode == true {
+                    self.second_snake_directions.push(Direction::Still);
+                }
             }
         }
         self.reversed_snake.push(reversed_vector[0].clone());
@@ -1049,7 +1274,8 @@ fn main() -> std::io::Result<()> {
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
     let mut game_elements: World = World::new(
-        Direction::East,
+        Direction::Still,
+        vec![Direction::Still],
         Vec::new(),
         (0, 0),
         false,
@@ -1062,6 +1288,7 @@ fn main() -> std::io::Result<()> {
         Vec::new(),
         TimeCycle::Forward,
         None,
+        vec![Direction::Still],
         None,
     );
     game_elements.food_generator(&buffer, &cli);
@@ -1120,6 +1347,7 @@ mod test {
         let mut game_elements: World = World::new(
             Direction::East,
             Vec::new(),
+            Vec::new(),
             (0, 0),
             false,
             Instant::now(),
@@ -1131,6 +1359,7 @@ mod test {
             Vec::new(),
             TimeCycle::Forward,
             None,
+            Vec::new(),
             None,
         );
         game_elements.snake_generator(&buffer);
@@ -1274,6 +1503,7 @@ mod test {
         let mut game_elements: World = World::new(
             Direction::North,
             Vec::new(),
+            Vec::new(),
             (0, 0),
             false,
             Instant::now(),
@@ -1285,6 +1515,7 @@ mod test {
             Vec::new(),
             TimeCycle::Forward,
             None,
+            Vec::new(),
             None,
         );
         game_elements.snake_generator(&buffer);
@@ -1357,6 +1588,7 @@ mod test {
         let mut game_elements: World = World::new(
             Direction::South,
             Vec::new(),
+            Vec::new(),
             (0, 0),
             false,
             Instant::now(),
@@ -1368,6 +1600,7 @@ mod test {
             Vec::new(),
             TimeCycle::Forward,
             None,
+            Vec::new(),
             None,
         );
         game_elements.snake_generator(&buffer);
@@ -1441,6 +1674,7 @@ mod test {
         let mut game_elements: World = World::new(
             Direction::West,
             Vec::new(),
+            Vec::new(),
             (0, 0),
             false,
             Instant::now(),
@@ -1452,6 +1686,7 @@ mod test {
             Vec::new(),
             TimeCycle::Forward,
             None,
+            Vec::new(),
             None,
         );
         game_elements.snake_generator(&buffer);
@@ -1555,6 +1790,7 @@ mod test {
         let mut game_elements: World = World::new(
             Direction::East,
             Vec::new(),
+            Vec::new(),
             (8, 1),
             false,
             Instant::now(),
@@ -1566,6 +1802,7 @@ mod test {
             Vec::new(),
             TimeCycle::Forward,
             None,
+            Vec::new(),
             None,
         );
         game_elements.snake_generator(&buffer);
@@ -1778,6 +2015,7 @@ mod test {
         let mut game_elements: World = World::new(
             Direction::East,
             Vec::new(),
+            Vec::new(),
             (8, 1),
             false,
             Instant::now(),
@@ -1789,6 +2027,7 @@ mod test {
             Vec::new(),
             TimeCycle::Backward,
             None,
+            Vec::new(),
             None,
         );
         game_elements.snake_generator(&buffer);
