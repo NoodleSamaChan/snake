@@ -102,6 +102,41 @@ pub fn snake_generator(world: &mut World, buffer: &WindowBuffer, cli: &Cli) {
     }
 }
 
+pub fn snakes_collision_checker(world: &World, cli: &Cli) -> bool {
+    if cli.two_players_mode == true {
+        let first_snake_head = world.snake[world.snake.len() - 1];
+        let mut first_snake_body = world.snake.clone();
+        first_snake_body.pop();
+
+        let mut second_snake_head = (0, 0);
+        let mut second_snake_body = Vec::new();
+
+        if let Some(second_snake) = &world.second_snake {
+            second_snake_head = second_snake[second_snake.len() - 1];
+            second_snake_body = second_snake.clone();
+        }
+        second_snake_body.pop();
+
+
+        let checker_first_snake_into_second = second_snake_body.iter().any(|(a, b)| (a, b) == (&first_snake_head.0, &first_snake_head.1));
+        let checker_second_snake_into_first = first_snake_body.iter().any(|(a, b)| (a, b) == (&second_snake_head.0, &second_snake_head.1));
+
+        if checker_first_snake_into_second == true {
+            return true
+        }
+        if checker_second_snake_into_first == true {
+            return true
+        }
+        if (checker_first_snake_into_second == false) && (checker_second_snake_into_first == false) {
+            return false
+        }
+
+        unreachable!("Problem with collision checker");
+    } else {
+        return false
+    }
+}
+
 pub fn display(world: &World, buffer: &mut WindowBuffer, cli: &Cli) {
     buffer.reset();
     world
@@ -408,6 +443,7 @@ impl World {
                     self.direction = Direction::North;
                 }
             }
+            return ;
         }
 
         if window.is_key_pressed(Key::N, KeyRepeat::Yes) {
@@ -455,6 +491,7 @@ impl World {
     }
 
     pub fn snake_update(&mut self, buffer: &WindowBuffer, cli: &Cli) {
+        let mut snake_collision_check = snakes_collision_checker(&self, cli);
         let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
 
         let head = self.snake[self.snake.len() - 1];
@@ -465,7 +502,7 @@ impl World {
         if self.snake[self.snake.len() - 1] == self.food {
             match self.direction {
                 Direction::North => {
-                    if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false
+                    if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false && snake_collision_check == false
                     {
                         self.snake.push((head.0, head.1));
                         reversed_vector = self
@@ -491,7 +528,7 @@ impl World {
                             self.second_snake_directions.push(Direction::North);
                         }
                     } else {
-                        if cli.ghost_mode == true && checker == false {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                             self.snake.push((head.0, head.1));
                             reversed_vector = self
                                 .snake
@@ -529,7 +566,7 @@ impl World {
                     }
                 }
                 Direction::South => {
-                    if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false
+                    if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false && snake_collision_check == false
                     {
                         self.snake.push((head.0, head.1));
                         reversed_vector = self
@@ -554,7 +591,7 @@ impl World {
                             self.second_snake_directions.push(Direction::South);
                         }
                     } else {
-                        if cli.ghost_mode == true && checker == false {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                             self.snake.push((head.0, head.1));
                             reversed_vector = self
                                 .snake
@@ -592,7 +629,7 @@ impl World {
                     }
                 }
                 Direction::East => {
-                    if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false
+                    if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false && snake_collision_check == false
                     {
                         self.snake.push((head.0, head.1));
                         reversed_vector = self
@@ -617,7 +654,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::East);
                             }
                     } else {
-                        if cli.ghost_mode == true && checker == false {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                             self.snake.push((head.0, head.1));
                             reversed_vector = self
                                 .snake
@@ -654,7 +691,7 @@ impl World {
                     }
                 }
                 Direction::West => {
-                    if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false
+                    if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false && snake_collision_check == false
                     {
                         self.snake.push((head.0, head.1));
                         reversed_vector = self
@@ -679,7 +716,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::West);
                             }
                     } else {
-                        if cli.ghost_mode == true && checker == false {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                             self.snake.push((head.0, head.1));
                             reversed_vector = self
                                 .snake
@@ -738,7 +775,7 @@ impl World {
 
             match self.direction {
                 Direction::North => {
-                    if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false
+                    if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false && snake_collision_check == false
                     {
                         self.snake.push((head.0, head.1));
                         reversed_vector = self
@@ -759,7 +796,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::North);
                             }
                     } else {
-                        if cli.ghost_mode == true && checker == false {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                             self.snake.push((head.0, head.1));
                             reversed_vector = self
                                 .snake
@@ -797,7 +834,7 @@ impl World {
                     }
                 }
                 Direction::South => {
-                    if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false
+                    if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false && snake_collision_check == false
                     {
                         self.snake.push((head.0, head.1));
                         reversed_vector = self
@@ -818,7 +855,7 @@ impl World {
                             self.second_snake_directions.push(Direction::South);
                         }
                     } else {
-                        if cli.ghost_mode == true && checker == false {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                             self.snake.push((head.0, head.1));
                             reversed_vector = self
                                 .snake
@@ -856,7 +893,7 @@ impl World {
                     }
                 }
                 Direction::East => {
-                    if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false
+                    if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false && snake_collision_check == false
                     {
                         self.snake.push((head.0, head.1));
                         reversed_vector = self
@@ -877,7 +914,7 @@ impl World {
                             self.second_snake_directions.push(Direction::East);
                         }
                     } else {
-                        if cli.ghost_mode == true && checker == false {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                             self.snake.push((head.0, head.1));
                             reversed_vector = self
                                 .snake
@@ -915,7 +952,7 @@ impl World {
                     }
                 }
                 Direction::West => {
-                    if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false
+                    if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false && snake_collision_check == false
                     {
                         self.snake.push((head.0, head.1));
                         reversed_vector = self
@@ -936,7 +973,7 @@ impl World {
                             self.second_snake_directions.push(Direction::West);
                         }
                     } else {
-                        if cli.ghost_mode == true && checker == false {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                             self.snake.push((head.0, head.1));
                             reversed_vector = self
                                 .snake
@@ -987,6 +1024,7 @@ impl World {
     }
 
     pub fn direction(&mut self, buffer: &WindowBuffer, cli: &Cli) {
+        let mut snake_collision_check = snakes_collision_checker(&self, cli);
         let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
         let head = self.snake[self.snake.len() - 1];
         let mut snake_body = self.snake.clone();
@@ -996,7 +1034,7 @@ impl World {
 
         match self.direction {
             Direction::North => {
-                if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false {
+                if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false && snake_collision_check == false {
                     reversed_vector = self
                         .snake
                         .windows(2)
@@ -1014,7 +1052,7 @@ impl World {
                         self.second_snake_directions.push(Direction::North);
                     }
                 } else {
-                    if cli.ghost_mode == true && checker == false {
+                    if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                         reversed_vector = self
                             .snake
                             .windows(2)
@@ -1042,7 +1080,7 @@ impl World {
                 }
             }
             Direction::South => {
-                if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false {
+                if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false && snake_collision_check == false {
                     reversed_vector = self
                         .snake
                         .windows(2)
@@ -1060,7 +1098,7 @@ impl World {
                         self.second_snake_directions.push(Direction::South);
                     }
                 } else {
-                    if cli.ghost_mode == true && checker == false {
+                    if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                         reversed_vector = self
                             .snake
                             .windows(2)
@@ -1087,7 +1125,7 @@ impl World {
                 }
             }
             Direction::East => {
-                if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false {
+                if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false && snake_collision_check == false {
                     reversed_vector = self
                         .snake
                         .windows(2)
@@ -1105,7 +1143,7 @@ impl World {
                         self.second_snake_directions.push(Direction::East);
                     }
                 } else {
-                    if cli.ghost_mode == true && checker == false {
+                    if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                         reversed_vector = self
                             .snake
                             .windows(2)
@@ -1133,7 +1171,7 @@ impl World {
                 }
             }
             Direction::West => {
-                if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false {
+                if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false && snake_collision_check == false {
                     reversed_vector = self
                         .snake
                         .windows(2)
@@ -1151,7 +1189,7 @@ impl World {
                         self.second_snake_directions.push(Direction::West);
                     }
                 } else {
-                    if cli.ghost_mode == true && checker == false {
+                    if cli.ghost_mode == true && checker == false && snake_collision_check == false {
                         reversed_vector = self
                             .snake
                             .windows(2)
