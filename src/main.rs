@@ -83,7 +83,6 @@ pub fn snake_generator(world: &mut World, buffer: &WindowBuffer, cli: &Cli) {
     world.snake.push((x_middle_point, y_middle_point));
 
     if cli.two_players_mode == true {
-        println!("LOOP OF SECOND SNAKE");
         world
             .second_snake
             .as_mut()
@@ -146,18 +145,20 @@ pub fn display(world: &World, buffer: &mut WindowBuffer, cli: &Cli) {
     buffer[world.snake[world.snake.len() - 1]] = rgb(u8::MAX, 0, 0);
 
     if cli.two_players_mode == true && world.second_snake != None {
-        world
+
+        if let Some(second_snake) = &world.second_snake {
+            world
             .second_snake
             .clone()
             .unwrap()
             .iter()
             .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(150, 150, 250));
-    if let Some(second_snake) = &world.second_snake {
-        buffer[second_snake[second_snake.len() - 1]] = rgb(u8::MAX, 0, 0);
-    }
+            buffer[second_snake[second_snake.len() - 1]] = rgb(u8::MAX, 0, 0);
+        }
     }
 
     buffer[world.food] = rgb(0, u8::MAX, 0);
+    
     if let Some(pos) = world.bad_berries_position {
         buffer[pos] = rgb(u8::MAX, 0, 0);
     }
@@ -246,7 +247,7 @@ pub enum Direction {
 
 //WORLD CREATION
 pub struct World {
-    direction: Direction,
+    current_direction_first_snake: Direction,
     first_snake_directions : Vec<Direction>,
     snake: Vec<(usize, usize)>,
     food: (usize, usize),
@@ -262,12 +263,13 @@ pub struct World {
     second_snake: Option<Vec<(usize, usize)>>,
     second_snake_directions : Vec<Direction>,
     reversed_second_snake: Option<Vec<(usize, usize)>>,
+    current_direction_second_snake: Direction,
 
 }
 
 impl World {
     pub fn new(
-        direction: Direction,
+        current_direction_first_snake: Direction,
         first_snake_directions : Vec<Direction>,
         snake: Vec<(usize, usize)>,
         food: (usize, usize),
@@ -283,9 +285,10 @@ impl World {
         second_snake: Option<Vec<(usize, usize)>>,
         second_snake_directions : Vec<Direction>,
         reversed_second_snake: Option<Vec<(usize, usize)>>,
+        current_direction_second_snake: Direction,
     ) -> Self {
         Self {
-            direction,
+            current_direction_first_snake,
             first_snake_directions,
             snake,
             food,
@@ -301,6 +304,7 @@ impl World {
             second_snake,
             second_snake_directions,
             reversed_second_snake,
+            current_direction_second_snake,
         }
     }
 
@@ -308,11 +312,19 @@ impl World {
         if self.space_count % 2 == 0 {
             self.direction(buffer, cli);
             self.snake_update(buffer, cli);
+            
+            if cli.two_players_mode == true {
+                self.direction_second_snake(buffer, cli);
+                self.second_snake_update(buffer, cli);
+            }
         }
     }
 
     pub fn reset(&mut self) {
         self.snake.clear();
+        if let Some(mut pos) = self.second_snake.clone() {
+            pos.clear();
+        }
     }
 
     pub fn food_generator(&mut self, buffer: &WindowBuffer, cli: &Cli) {
@@ -333,51 +345,6 @@ impl World {
                     self.bad_berries_position = Some((v, w));
                 }
                 return;
-            }
-        }
-    }
-
-    pub fn display(&self, buffer: &mut WindowBuffer) {
-        buffer.reset();
-        self.snake
-            .iter()
-            .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(0, 0, u8::MAX));
-        buffer[self.snake[self.snake.len() - 1]] = rgb(u8::MAX, 0, 0);
-
-        for x in 0..buffer.width() {
-            for y in 0..buffer.height() {
-                if (x, y) == (self.food.0, self.food.1)
-                    && self.snake[self.snake.len() - 1] != (x, y)
-                {
-                    buffer[(x, y)] = rgb(0, u8::MAX, 0);
-                }
-                if (self.bad_berries_position != None)
-                    && (x, y)
-                        == (
-                            self.bad_berries_position.unwrap().0,
-                            self.bad_berries_position.unwrap().1,
-                        )
-                    && self.snake[self.snake.len() - 1] != (x, y)
-                {
-                    buffer[(x, y)] = rgb(u8::MAX, 0, 0);
-                }
-            }
-        }
-    }
-
-    pub fn go_display(&self, buffer: &mut WindowBuffer) {
-        buffer.reset();
-        self.snake
-            .iter()
-            .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = rgb(u8::MAX, 0, 0));
-
-        for x in 0..buffer.width() {
-            for y in 0..buffer.height() {
-                if (x, y) == (self.food.0, self.food.1)
-                    && self.snake[self.snake.len() - 1] != (x, y)
-                {
-                    buffer[(x, y)] = rgb(u8::MAX, 0, 0);
-                }
             }
         }
     }
@@ -415,57 +382,60 @@ impl World {
 
         if window.is_key_pressed(Key::Up, KeyRepeat::Yes) {
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::South {
-                self.direction = Direction::North;
+                self.current_direction_first_snake = Direction::North;
             }
         }
 
         if window.is_key_pressed(Key::Down, KeyRepeat::Yes) {
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::North {
-                self.direction = Direction::South;
+                self.current_direction_first_snake = Direction::South;
             }
         }
 
         if window.is_key_pressed(Key::Left, KeyRepeat::Yes) {
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::East {
-                self.direction = Direction::West;
+                self.current_direction_first_snake = Direction::West;
             }
         }
 
         if window.is_key_pressed(Key::Right, KeyRepeat::Yes) {
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::West {
-                self.direction = Direction::East;
+                self.current_direction_first_snake = Direction::East;
             }
         }
 
         if window.is_key_pressed(Key::U, KeyRepeat::Yes) {
             if cli.two_players_mode == true {
+                println!("trying to move up");
                 if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::South {
-                    self.direction = Direction::North;
+                    self.current_direction_second_snake = Direction::North;
                 }
             }
-            return ;
         }
 
         if window.is_key_pressed(Key::N, KeyRepeat::Yes) {
             if cli.two_players_mode == true {
+                println!("trying to move down");
                 if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::North {
-                    self.direction = Direction::South;
+                    self.current_direction_second_snake = Direction::South;
                 }
             }
         }
 
         if window.is_key_pressed(Key::H, KeyRepeat::Yes) {
             if cli.two_players_mode == true {
+                println!("trying to move left");
                 if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::East {
-                    self.direction = Direction::West;
+                    self.current_direction_second_snake = Direction::West;
                 }
             }
         }
 
         if window.is_key_pressed(Key::J, KeyRepeat::Yes) {
             if cli.two_players_mode == true {
+                println!("trying to move right");
                 if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::West {
-                    self.direction = Direction::East;
+                    self.current_direction_second_snake = Direction::East;
                 }
             }
         }
@@ -500,7 +470,7 @@ impl World {
         let checker = snake_body.iter().any(|(a, b)| (a, b) == (&head.0, &head.1));
 
         if self.snake[self.snake.len() - 1] == self.food {
-            match self.direction {
+            match self.current_direction_first_snake {
                 Direction::North => {
                     if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false && snake_collision_check == false
                     {
@@ -553,7 +523,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::North);
                             }
                         } else {
-                            self.direction = Still;
+                            self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
@@ -616,7 +586,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::South);
                             }
                         } else {
-                            self.direction = Still;
+                            self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
@@ -678,7 +648,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::East);
                             }
                         } else {
-                            self.direction = Still;
+                            self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
@@ -741,7 +711,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::West);
                             }
                         } else {
-                            self.direction = Still;
+                            self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
@@ -773,7 +743,7 @@ impl World {
                 self.snake_speed = self.snake_speed * 3;
             }
 
-            match self.direction {
+            match self.current_direction_first_snake {
                 Direction::North => {
                     if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false && snake_collision_check == false
                     {
@@ -821,7 +791,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::North);
                             }
                         } else {
-                            self.direction = Still;
+                            self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
@@ -880,7 +850,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::South);
                             }
                         } else {
-                            self.direction = Still;
+                            self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
@@ -939,7 +909,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::East);
                             }
                         } else {
-                            self.direction = Still;
+                            self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
@@ -998,7 +968,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::West);
                             }
                         } else {
-                            self.direction = Still;
+                            self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
                             self.finished = true;
                             println!("Your score is {}", self.score);
@@ -1023,6 +993,471 @@ impl World {
         }
     }
 
+    pub fn second_snake_update(&mut self, buffer: &WindowBuffer, cli: &Cli) {
+        let snake_collision_check = snakes_collision_checker(&self, cli);
+
+        let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
+        let mut head = (0, 0);
+        let mut snake_body: Vec<(usize, usize)> = Vec::new();
+        if let Some(second_snake) = &self.second_snake {
+            head = second_snake[second_snake.len() - 1];
+            snake_body = second_snake.clone();
+        }
+        snake_body.pop();
+
+        let checker = snake_body.iter().any(|(a, b)| (a, b) == (&head.0, &head.1));
+
+        if self.snake[self.snake.len() - 1] == self.food {
+            match self.current_direction_first_snake {
+                Direction::North => {
+                    if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false && snake_collision_check == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, head.1 - 1));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+                        self.second_snake_directions.push(Direction::North);
+                    } else {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+                            self.snake.push((head.0, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, buffer.height() - 1));
+
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
+
+                            self.food_generator(&buffer, cli);
+
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
+
+                            self.second_snake_directions.push(Direction::North);
+                        } else {
+                            self.current_direction_first_snake = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+
+                            self.second_snake_directions.push(Direction::Still);
+                        }
+                    }
+                }
+                Direction::South => {
+                    if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false && snake_collision_check == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, head.1 + 1));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+                        self.second_snake_directions.push(Direction::South);
+                    } else {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+                            self.snake.push((head.0, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, 0));
+
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
+
+                            self.food_generator(&buffer, cli);
+
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
+
+                            self.second_snake_directions.push(Direction::South);
+                        } else {
+                            self.current_direction_first_snake = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+
+                            self.second_snake_directions.push(Direction::Still);
+                        }
+                    }
+                }
+                Direction::East => {
+                    if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false && snake_collision_check == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0 + 1, head.1));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+                        self.second_snake_directions.push(Direction::East);
+                    } else {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+                            self.snake.push((head.0, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((0, head.1));
+
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
+
+                            self.food_generator(&buffer, cli);
+
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
+                            self.second_snake_directions.push(Direction::East);
+                        } else {
+                            self.current_direction_first_snake = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+
+                            self.second_snake_directions.push(Direction::Still);
+                        }
+                    }
+                }
+                Direction::West => {
+                    if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false && snake_collision_check == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0 - 1, head.1));
+
+                        if cli.speed_increase == Difficulty::Hard {
+                            self.snake_speed = 120;
+                        }
+
+                        self.food_generator(&buffer, cli);
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+                        self.second_snake_directions.push(Direction::West);
+                    } else {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+                            self.snake.push((head.0, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((buffer.width() - 1, head.1));
+
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
+
+                            self.food_generator(&buffer, cli);
+
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
+
+                            self.second_snake_directions.push(Direction::West);
+                        } else {
+                            self.current_direction_first_snake = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+
+                            self.second_snake_directions.push(Direction::Still);
+                        }
+                    }
+                }
+                Direction::Still => {
+                    reversed_vector = self.snake.clone();
+                    self.second_snake_directions.push(Direction::Still);
+                }
+            }
+            self.snake = reversed_vector;
+        } else if (self.bad_berries_position != None)
+            && (self.snake[self.snake.len() - 1] == self.bad_berries_position.unwrap())
+        {
+            self.bad_berries.0 += 1;
+
+            if self.bad_berries.0 % 2 != 0 {
+                self.snake_speed = self.snake_speed / 3;
+            } else if (self.bad_berries.0 > 1) && (self.bad_berries.0 % 2 == 0) {
+                self.snake_speed = self.snake_speed * 3;
+            }
+
+            match self.current_direction_first_snake {
+                Direction::North => {
+                    if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false && snake_collision_check == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, head.1 - 1));
+
+                        self.food_generator(&buffer, cli);
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+                        self.second_snake_directions.push(Direction::North);
+                    } else {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+                            self.snake.push((head.0, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, buffer.height() - 1));
+
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
+
+                            self.food_generator(&buffer, cli);
+
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
+
+                            self.second_snake_directions.push(Direction::North);
+                        } else {
+                            self.current_direction_first_snake = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+
+                            self.second_snake_directions.push(Direction::Still);
+                        }
+                    }
+                }
+                Direction::South => {
+                    if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false && snake_collision_check == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, head.1 + 1));
+
+                        self.food_generator(&buffer, cli);
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+                        self.second_snake_directions.push(Direction::South);
+                    } else {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+                            self.snake.push((head.0, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, 0));
+
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
+
+                            self.food_generator(&buffer, cli);
+
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
+
+                            self.second_snake_directions.push(Direction::South);
+                        } else {
+                            self.current_direction_first_snake = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+
+                            self.second_snake_directions.push(Direction::Still);
+                        }
+                    }
+                }
+                Direction::East => {
+                    if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false && snake_collision_check == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0 + 1, head.1));
+
+                        self.food_generator(&buffer, cli);
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+                        self.second_snake_directions.push(Direction::East);
+                    } else {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+                            self.snake.push((head.0, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((0, head.1));
+
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
+
+                            self.food_generator(&buffer, cli);
+
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
+
+                            self.second_snake_directions.push(Direction::East);
+                        } else {
+                            self.current_direction_first_snake = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+
+                            self.second_snake_directions.push(Direction::Still);
+                        }
+                    }
+                }
+                Direction::West => {
+                    if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false && snake_collision_check == false
+                    {
+                        self.snake.push((head.0, head.1));
+                        reversed_vector = self
+                            .snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0 - 1, head.1));
+
+                        self.food_generator(&buffer, cli);
+                        self.score += 10;
+                        self.bad_berries.1 += 1;
+
+                        self.second_snake_directions.push(Direction::West);
+                    } else {
+                        if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+                            self.snake.push((head.0, head.1));
+                            reversed_vector = self
+                                .snake
+                                .windows(2)
+                                .rev()
+                                .map(|x| x[1])
+                                .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((buffer.width() - 1, head.1));
+
+                            if cli.speed_increase == Difficulty::Hard {
+                                self.snake_speed = 120;
+                            }
+
+                            self.food_generator(&buffer, cli);
+
+                            self.score += 10;
+                            self.bad_berries.1 += 1;
+
+                            self.second_snake_directions.push(Direction::West);
+                        } else {
+                            self.current_direction_first_snake = Still;
+                            reversed_vector = self.snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+
+                            self.second_snake_directions.push(Direction::Still);
+                        }
+                    }
+                }
+                Direction::Still => {
+                    reversed_vector = self.snake.clone();
+                    self.second_snake_directions.push(Direction::Still);
+                }
+            }
+            
+            if let Some(mut reversed_second_snake) = self.reversed_second_snake.clone() {
+            reversed_second_snake.push(reversed_vector[0].clone());
+            }
+            if let Some(mut second_snake_body) = self.second_snake.clone() {
+                second_snake_body = reversed_vector;
+            }
+        }
+    }
+
     pub fn direction(&mut self, buffer: &WindowBuffer, cli: &Cli) {
         let mut snake_collision_check = snakes_collision_checker(&self, cli);
         let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
@@ -1032,7 +1467,7 @@ impl World {
 
         let checker = snake_body.iter().any(|(a, b)| (a, b) == (&head.0, &head.1));
 
-        match self.direction {
+        match self.current_direction_first_snake {
             Direction::North => {
                 if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false && snake_collision_check == false {
                     reversed_vector = self
@@ -1067,7 +1502,7 @@ impl World {
                                 self.second_snake_directions.push(Direction::North);
                         }
                     } else {
-                        self.direction = Still;
+                        self.current_direction_first_snake = Still;
                         reversed_vector = self.snake.clone();
                         self.finished = true;
                         println!("Your score is {}", self.score);
@@ -1112,7 +1547,7 @@ impl World {
                             self.second_snake_directions.push(Direction::South);
                         }
                     } else {
-                        self.direction = Still;
+                        self.current_direction_first_snake = Still;
                         reversed_vector = self.snake.clone();
                         self.finished = true;
                         println!("Your score is {}", self.score);
@@ -1158,7 +1593,7 @@ impl World {
                             self.second_snake_directions.push(Direction::East);
                         }
                     } else {
-                        self.direction = Still;
+                        self.current_direction_first_snake = Still;
                         reversed_vector = self.snake.clone();
                         self.finished = true;
                         println!("Your score is {}", self.score);
@@ -1204,7 +1639,7 @@ impl World {
                             self.second_snake_directions.push(Direction::West);
                         }
                     } else {
-                        self.direction = Still;
+                        self.current_direction_first_snake = Still;
                         reversed_vector = self.snake.clone();
                         self.finished = true;
                         println!("Your score is {}", self.score);
@@ -1217,7 +1652,7 @@ impl World {
                 }
             }
             Direction::Still => {
-                self.direction = Still;
+                self.current_direction_first_snake = Still;
                 reversed_vector = self.snake.clone();
                 self.first_snake_directions.push(Direction::Still);
                 if cli.two_players_mode == true {
@@ -1229,31 +1664,215 @@ impl World {
         self.snake = reversed_vector;
     }
 
-    pub fn return_in_time(&mut self) {
-        let mut time_turning_snake: Vec<(usize, usize)> = Vec::new();
-
-        let mut previous_position = self.reversed_snake.pop();
-        println!("previous position is {:#?}", previous_position);
-
-        if previous_position.unwrap() == self.snake[0] {
-            previous_position = self.reversed_snake.pop();
+    pub fn direction_second_snake(&mut self, buffer: &WindowBuffer, cli: &Cli) {
+        let snake_collision_check = snakes_collision_checker(&self, cli);
+        let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
+        let mut head = (0, 0);
+        let mut snake_body: Vec<(usize, usize)> = Vec::new();
+        if let Some(second_snake) = &self.second_snake {
+            head = second_snake[second_snake.len() - 1];
+            snake_body = second_snake.clone();
         }
+        snake_body.pop();
 
-        time_turning_snake = self
-            .snake
-            .windows(2)
-            .rev()
-            .map(|x| x[0])
-            .collect::<Vec<_>>();
-        time_turning_snake = time_turning_snake.into_iter().rev().collect();
+        let checker = snake_body.iter().any(|(a, b)| (a, b) == (&head.0, &head.1));
 
-        if previous_position != None {
-            time_turning_snake.insert(0, previous_position.unwrap());
-            //time_turning_snake.push(previous_position.unwrap());
+        match self.current_direction_second_snake {
+            Direction::North => {
+                if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false && snake_collision_check == false {
+
+                    if let Some(second_snake) = self.second_snake.clone() {
+                        reversed_vector = second_snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, head.1 - 1));
+                    }
+                    println!("{:#?}", reversed_vector);
+
+                    self.second_snake_directions.push(Direction::North);
+                } else {
+                    if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+                        if let Some(second_snake) = self.second_snake.clone() {
+                            reversed_vector = second_snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, buffer.height() - 1));
+
+                            if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
+                                self.snake_speed -= 1;
+                            }
+                        }
+
+                        self.second_snake_directions.push(Direction::North);
+                    } else {
+                        self.current_direction_second_snake = Still;
+
+                        if let Some(second_snake) = self.second_snake.clone() {
+                            reversed_vector = second_snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
+
+                        self.second_snake_directions.push(Direction::Still);
+                    }
+                }
+            }
+            Direction::South => {
+                if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false && snake_collision_check == false {
+
+                    if let Some(second_snake) = self.second_snake.clone() {
+                        reversed_vector = second_snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0, head.1 + 1));
+                        if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
+                            self.snake_speed -= 1;
+                        }
+                    }
+
+                    self.second_snake_directions.push(Direction::South);
+                } else {
+                    if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+
+                        if let Some(second_snake) = self.second_snake.clone() {
+                            reversed_vector = second_snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, 0));
+                            if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
+                                self.snake_speed -= 1;
+                            }
+                        }
+                        self.second_snake_directions.push(Direction::South);
+                    } else {
+                        self.current_direction_second_snake = Still;
+
+                        if let Some(second_snake) = self.second_snake.clone() {
+                            reversed_vector = second_snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
+
+                        self.second_snake_directions.push(Direction::Still);
+                    }
+                }
+            }
+            Direction::East => {
+                if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false && snake_collision_check == false {
+
+                    if let Some(second_snake) = self.second_snake.clone() {
+                        reversed_vector = second_snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0 + 1, head.1));
+                        if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
+                            self.snake_speed -= 1;
+                        }
+                    }
+
+                    self.second_snake_directions.push(Direction::East);
+                } else {
+                    if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+
+                        if let Some(second_snake) = self.second_snake.clone() {
+                            reversed_vector = second_snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((0, head.1));
+                        }
+
+                        self.second_snake_directions.push(Direction::East);
+                    } else {
+                        self.current_direction_second_snake = Still;
+
+                        if let Some(second_snake) = self.second_snake.clone() {
+                            reversed_vector = second_snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
+
+                        self.second_snake_directions.push(Direction::Still);
+                    }
+                }
+            }
+            Direction::West => {
+                if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false && snake_collision_check == false {
+
+                    if let Some(second_snake) = self.second_snake.clone() {
+                        reversed_vector = second_snake
+                        .windows(2)
+                        .rev()
+                        .map(|x| x[1])
+                        .collect::<Vec<_>>();
+                        reversed_vector = reversed_vector.into_iter().rev().collect();
+                        reversed_vector.push((head.0 - 1, head.1));
+                        if cli.speed_increase == Difficulty::Hard && self.snake_speed > 0 {
+                            self.snake_speed -= 1;
+                        }
+                    }
+
+                    self.second_snake_directions.push(Direction::West);
+                } else {
+                    if cli.ghost_mode == true && checker == false && snake_collision_check == false {
+
+                        if let Some(second_snake) = self.second_snake.clone() {
+                            reversed_vector = second_snake
+                            .windows(2)
+                            .rev()
+                            .map(|x| x[1])
+                            .collect::<Vec<_>>();
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((buffer.width() - 1, head.1));
+                        }
+
+                        self.second_snake_directions.push(Direction::West);
+                    } else {
+                        self.current_direction_second_snake = Still;
+
+                        if let Some(second_snake) = self.second_snake.clone() {
+                            reversed_vector = second_snake.clone();
+                            self.finished = true;
+                            println!("Your score is {}", self.score);
+                        }
+
+                        self.second_snake_directions.push(Direction::Still);
+                    }
+                }
+            }
+            Direction::Still => {
+
+                if let Some(second_snake) = self.second_snake.clone() {
+                    reversed_vector = second_snake.clone();
+                }
+                self.second_snake_directions.push(Direction::Still);
+            }
         }
-        println!(" time turning snake is {:#?}", time_turning_snake);
-        self.snake = time_turning_snake;
+        if let Some(mut reversed_second_snake) = self.reversed_second_snake.clone() {
+            reversed_second_snake.push(reversed_vector[0].clone());
+        }
+        if let Some(mut second_snake_body) = self.second_snake.clone() {
+            self.second_snake = Some(reversed_vector);
+        }
     }
+
 }
 //WORLD CREATION END
 
@@ -1331,6 +1950,7 @@ fn main() -> std::io::Result<()> {
         Some(Vec::new()),
         vec![Direction::Still],
         Some(Vec::new()),
+        Direction::Still,
     );
     game_elements.food_generator(&buffer, &cli);
     snake_generator(&mut game_elements, &buffer, &cli);
@@ -1384,24 +2004,6 @@ mod test {
     #[test]
     fn snake_moves_east() {
         let cli = Cli::parse();
-        let mut world = World::new(
-        Direction::Still,
-        vec![Direction::Still],
-        Vec::new(),
-        (0, 0),
-        false,
-        Instant::now(),
-        0,
-        cli.snake_speed,
-        0,
-        (0, 0),
-        None,
-        Vec::new(),
-        TimeCycle::Forward,
-        None,
-        vec![Direction::Still],
-        None,
-    );
         let mut buffer: WindowBuffer = WindowBuffer::new(8, 6);
         let mut game_elements: World = World::new(
             Direction::East,
@@ -1420,9 +2022,10 @@ mod test {
             None,
             Vec::new(),
             None,
+            Direction::Still,
         );
         snake_generator(&mut game_elements, &buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
 
         assert_snapshot!(
             buffer.to_string(),
@@ -1456,7 +2059,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1489,7 +2092,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1522,7 +2125,7 @@ mod test {
         );
 
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1576,9 +2179,10 @@ mod test {
             None,
             Vec::new(),
             None,
+            Direction::Still,
         );
         snake_generator(&mut game_elements, &buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
 
         assert_snapshot!(
             buffer.to_string(),
@@ -1594,7 +2198,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1609,7 +2213,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1624,7 +2228,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1661,9 +2265,10 @@ mod test {
             None,
             Vec::new(),
             None,
+            Direction::Still,
         );
         snake_generator(&mut game_elements, &buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
 
         assert_snapshot!(
             buffer.to_string(),
@@ -1679,7 +2284,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1694,7 +2299,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1709,7 +2314,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1747,9 +2352,10 @@ mod test {
             None,
             Vec::new(),
             None,
+            Direction::Still,
         );
         snake_generator(&mut game_elements, &buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
 
         assert_snapshot!(
             buffer.to_string(),
@@ -1765,7 +2371,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1780,7 +2386,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1795,7 +2401,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1810,7 +2416,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###"
@@ -1825,7 +2431,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
 
         assert_snapshot!(
             buffer.to_string(),
@@ -1863,9 +2469,10 @@ mod test {
             None,
             Vec::new(),
             None,
+            Direction::Still,
         );
         snake_generator(&mut game_elements, &buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         game_elements.snake_update(&mut buffer, &cli);
 
         assert_snapshot!(
@@ -1897,7 +2504,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         game_elements.snake_update(&mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
@@ -1928,7 +2535,7 @@ mod test {
         "###
         );
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         game_elements.snake_update(&mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
@@ -1963,7 +2570,7 @@ mod test {
         );
 
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         game_elements.snake_update(&mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
@@ -1998,7 +2605,7 @@ mod test {
         );
 
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         game_elements.snake_update(&mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
@@ -2033,7 +2640,7 @@ mod test {
         );
 
         game_elements.direction(&mut buffer, &cli);
-        game_elements.display(&mut buffer);
+        display(&game_elements, &mut buffer, &cli);
         game_elements.snake_update(&mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
@@ -2089,10 +2696,11 @@ mod test {
             None,
             Vec::new(),
             None,
+            Direction::Still,
         );
         snake_generator(&mut game_elements, &buffer, &cli);
-        game_elements.display(&mut buffer);
-        game_elements.return_in_time();
+        display(&game_elements, &mut buffer, &cli);
+        return_in_time(&mut game_elements, &cli);
 
         assert_snapshot!(
             buffer.to_string(),
@@ -2103,8 +2711,8 @@ mod test {
             game_elements.snake,
         @r###""###
         );
-        game_elements.return_in_time();
-        game_elements.display(&mut buffer);
+        return_in_time(&mut game_elements, &cli);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###""###
@@ -2114,8 +2722,8 @@ mod test {
             game_elements.snake,
             @r###""###
         );
-        game_elements.return_in_time();
-        game_elements.display(&mut buffer);
+        return_in_time(&mut game_elements, &cli);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###""###
@@ -2125,8 +2733,8 @@ mod test {
             @r###""###
         );
 
-        game_elements.return_in_time();
-        game_elements.display(&mut buffer);
+        return_in_time(&mut game_elements, &cli);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###""###
@@ -2136,8 +2744,8 @@ mod test {
             @r###""###
         );
 
-        game_elements.return_in_time();
-        game_elements.display(&mut buffer);
+        return_in_time(&mut game_elements, &cli);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###""###
@@ -2147,8 +2755,8 @@ mod test {
             @r###""###
         );
 
-        game_elements.return_in_time();
-        game_elements.display(&mut buffer);
+        return_in_time(&mut game_elements, &cli);
+        display(&game_elements, &mut buffer, &cli);
         assert_snapshot!(
             buffer.to_string(),
             @r###""###
