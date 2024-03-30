@@ -184,6 +184,9 @@ pub fn go_display(world: &mut World, buffer: &mut WindowBuffer, cli: &Cli) {
 }
 
 pub fn return_in_time(world: &mut World, cli: &Cli) {
+    if  world.finished == true {
+        world.finished = false
+    }
     if world.reversed_snake.is_empty() == false {
         let mut time_turning_snake: Vec<(usize, usize)> = Vec::new();
 
@@ -381,24 +384,28 @@ impl World {
         }
 
         if window.is_key_pressed(Key::Up, KeyRepeat::Yes) {
+            self.time_cycle = TimeCycle::Forward;
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::South {
                 self.current_direction_first_snake = Direction::North;
             }
         }
 
         if window.is_key_pressed(Key::Down, KeyRepeat::Yes) {
+            self.time_cycle = TimeCycle::Forward;
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::North {
                 self.current_direction_first_snake = Direction::South;
             }
         }
 
         if window.is_key_pressed(Key::Left, KeyRepeat::Yes) {
+            self.time_cycle = TimeCycle::Forward;
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::East {
                 self.current_direction_first_snake = Direction::West;
             }
         }
 
         if window.is_key_pressed(Key::Right, KeyRepeat::Yes) {
+            self.time_cycle = TimeCycle::Forward;
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::West {
                 self.current_direction_first_snake = Direction::East;
             }
@@ -1006,22 +1013,26 @@ impl World {
         snake_body.pop();
 
         let checker = snake_body.iter().any(|(a, b)| (a, b) == (&head.0, &head.1));
+        let mut food_check = (0, 0);
+        if let Some(second_snake) = self.second_snake.clone() {
+            food_check = second_snake[second_snake.len() - 1]
+        }
 
-        if self.snake[self.snake.len() - 1] == self.food {
-            match self.current_direction_first_snake {
+        if food_check == self.food {
+            match self.current_direction_second_snake {
                 Direction::North => {
                     if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false && snake_collision_check == false
                     {
-                        self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
+                        if let Some(mut second_snake) = self.second_snake.clone() {
+                            second_snake.push((head.0, head.1));
+                            reversed_vector = second_snake
                             .windows(2)
                             .rev()
                             .map(|x| x[1])
                             .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0, head.1 - 1));
-
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, head.1 - 1));
+                        }
                         if cli.speed_increase == Difficulty::Hard {
                             self.snake_speed = 120;
                         }
@@ -1034,15 +1045,16 @@ impl World {
                         self.second_snake_directions.push(Direction::North);
                     } else {
                         if cli.ghost_mode == true && checker == false && snake_collision_check == false {
-                            self.snake.push((head.0, head.1));
-                            reversed_vector = self
-                                .snake
+                            if let Some(mut second_snake) = self.second_snake.clone() {
+                                second_snake.push((head.0, head.1));
+                                reversed_vector = second_snake
                                 .windows(2)
                                 .rev()
                                 .map(|x| x[1])
                                 .collect::<Vec<_>>();
-                            reversed_vector = reversed_vector.into_iter().rev().collect();
-                            reversed_vector.push((head.0, buffer.height() - 1));
+                                reversed_vector = reversed_vector.into_iter().rev().collect();
+                                reversed_vector.push((head.0, buffer.height() - 1));
+                            }
 
                             if cli.speed_increase == Difficulty::Hard {
                                 self.snake_speed = 120;
@@ -1055,8 +1067,10 @@ impl World {
 
                             self.second_snake_directions.push(Direction::North);
                         } else {
-                            self.current_direction_first_snake = Still;
-                            reversed_vector = self.snake.clone();
+                            self.current_direction_second_snake = Still;
+                            if let Some(second_snake) = self.second_snake.clone() {
+                                reversed_vector = second_snake.clone();
+                            }
                             self.finished = true;
                             println!("Your score is {}", self.score);
 
@@ -1067,15 +1081,16 @@ impl World {
                 Direction::South => {
                     if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false && snake_collision_check == false
                     {
-                        self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
+                        if let Some(mut second_snake) = self.second_snake.clone() {
+                            second_snake.push((head.0, head.1));
+                            reversed_vector = second_snake
                             .windows(2)
                             .rev()
                             .map(|x| x[1])
                             .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0, head.1 + 1));
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, head.1 + 1));
+                        }
 
                         if cli.speed_increase == Difficulty::Hard {
                             self.snake_speed = 120;
@@ -1088,15 +1103,16 @@ impl World {
                         self.second_snake_directions.push(Direction::South);
                     } else {
                         if cli.ghost_mode == true && checker == false && snake_collision_check == false {
-                            self.snake.push((head.0, head.1));
-                            reversed_vector = self
-                                .snake
+                            if let Some(mut second_snake) = self.second_snake.clone() {
+                                second_snake.push((head.0, head.1));
+                                reversed_vector = second_snake
                                 .windows(2)
                                 .rev()
                                 .map(|x| x[1])
                                 .collect::<Vec<_>>();
-                            reversed_vector = reversed_vector.into_iter().rev().collect();
-                            reversed_vector.push((head.0, 0));
+                                reversed_vector = reversed_vector.into_iter().rev().collect();
+                                reversed_vector.push((head.0, 0));
+                            }
 
                             if cli.speed_increase == Difficulty::Hard {
                                 self.snake_speed = 120;
@@ -1109,8 +1125,10 @@ impl World {
 
                             self.second_snake_directions.push(Direction::South);
                         } else {
-                            self.current_direction_first_snake = Still;
-                            reversed_vector = self.snake.clone();
+                            self.current_direction_second_snake = Still;
+                            if let Some(second_snake) = self.second_snake.clone() {
+                                reversed_vector = second_snake.clone();
+                            }
                             self.finished = true;
                             println!("Your score is {}", self.score);
 
@@ -1121,15 +1139,16 @@ impl World {
                 Direction::East => {
                     if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false && snake_collision_check == false
                     {
-                        self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
+                        if let Some(mut second_snake) = self.second_snake.clone() {
+                            second_snake.push((head.0, head.1));
+                            reversed_vector = second_snake
                             .windows(2)
                             .rev()
                             .map(|x| x[1])
                             .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0 + 1, head.1));
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0 + 1, head.1));
+                        }
 
                         if cli.speed_increase == Difficulty::Hard {
                             self.snake_speed = 120;
@@ -1142,15 +1161,16 @@ impl World {
                         self.second_snake_directions.push(Direction::East);
                     } else {
                         if cli.ghost_mode == true && checker == false && snake_collision_check == false {
-                            self.snake.push((head.0, head.1));
-                            reversed_vector = self
-                                .snake
+                            if let Some(mut second_snake) = self.second_snake.clone() {
+                                second_snake.push((head.0, head.1));
+                                reversed_vector = second_snake
                                 .windows(2)
                                 .rev()
                                 .map(|x| x[1])
                                 .collect::<Vec<_>>();
-                            reversed_vector = reversed_vector.into_iter().rev().collect();
-                            reversed_vector.push((0, head.1));
+                                reversed_vector = reversed_vector.into_iter().rev().collect();
+                                reversed_vector.push((0, head.1));
+                            }
 
                             if cli.speed_increase == Difficulty::Hard {
                                 self.snake_speed = 120;
@@ -1162,8 +1182,10 @@ impl World {
                             self.bad_berries.1 += 1;
                             self.second_snake_directions.push(Direction::East);
                         } else {
-                            self.current_direction_first_snake = Still;
-                            reversed_vector = self.snake.clone();
+                            self.current_direction_second_snake = Still;
+                            if let Some(second_snake) = self.second_snake.clone() {
+                                reversed_vector = second_snake.clone();
+                            }
                             self.finished = true;
                             println!("Your score is {}", self.score);
 
@@ -1174,15 +1196,16 @@ impl World {
                 Direction::West => {
                     if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false && snake_collision_check == false
                     {
-                        self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
+                        if let Some(mut second_snake) = self.second_snake.clone() {
+                            second_snake.push((head.0, head.1));
+                            reversed_vector = second_snake
                             .windows(2)
                             .rev()
                             .map(|x| x[1])
                             .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0 - 1, head.1));
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0 - 1, head.1));
+                        }
 
                         if cli.speed_increase == Difficulty::Hard {
                             self.snake_speed = 120;
@@ -1195,15 +1218,16 @@ impl World {
                         self.second_snake_directions.push(Direction::West);
                     } else {
                         if cli.ghost_mode == true && checker == false && snake_collision_check == false {
-                            self.snake.push((head.0, head.1));
-                            reversed_vector = self
-                                .snake
+                            if let Some(mut second_snake) = self.second_snake.clone() {
+                                second_snake.push((head.0, head.1));
+                                reversed_vector = second_snake
                                 .windows(2)
                                 .rev()
                                 .map(|x| x[1])
                                 .collect::<Vec<_>>();
-                            reversed_vector = reversed_vector.into_iter().rev().collect();
-                            reversed_vector.push((buffer.width() - 1, head.1));
+                                reversed_vector = reversed_vector.into_iter().rev().collect();
+                                reversed_vector.push((buffer.width() - 1, head.1))
+                            }
 
                             if cli.speed_increase == Difficulty::Hard {
                                 self.snake_speed = 120;
@@ -1216,8 +1240,10 @@ impl World {
 
                             self.second_snake_directions.push(Direction::West);
                         } else {
-                            self.current_direction_first_snake = Still;
-                            reversed_vector = self.snake.clone();
+                            self.current_direction_second_snake = Still;
+                            if let Some(second_snake) = self.second_snake.clone() {
+                                reversed_vector = second_snake.clone();
+                            }
                             self.finished = true;
                             println!("Your score is {}", self.score);
 
@@ -1226,13 +1252,15 @@ impl World {
                     }
                 }
                 Direction::Still => {
-                    reversed_vector = self.snake.clone();
+                    if let Some(second_snake) = self.second_snake.clone() {
+                        reversed_vector = second_snake.clone();
+                    }
                     self.second_snake_directions.push(Direction::Still);
                 }
             }
-            self.snake = reversed_vector;
+            self.second_snake = Some(reversed_vector);
         } else if (self.bad_berries_position != None)
-            && (self.snake[self.snake.len() - 1] == self.bad_berries_position.unwrap())
+            && food_check == self.bad_berries_position.unwrap()
         {
             self.bad_berries.0 += 1;
 
@@ -1242,19 +1270,20 @@ impl World {
                 self.snake_speed = self.snake_speed * 3;
             }
 
-            match self.current_direction_first_snake {
+            match self.current_direction_second_snake {
                 Direction::North => {
                     if buffer.get(head.0 as isize, head.1 as isize - 1) != None && checker == false && snake_collision_check == false
                     {
-                        self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
+                        if let Some(mut second_snake) = self.second_snake.clone() {
+                            second_snake.push((head.0, head.1));
+                            reversed_vector = second_snake
                             .windows(2)
                             .rev()
                             .map(|x| x[1])
                             .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0, head.1 - 1));
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, head.1 - 1));
+                        }
 
                         self.food_generator(&buffer, cli);
                         self.score += 10;
@@ -1263,15 +1292,17 @@ impl World {
                         self.second_snake_directions.push(Direction::North);
                     } else {
                         if cli.ghost_mode == true && checker == false && snake_collision_check == false {
-                            self.snake.push((head.0, head.1));
-                            reversed_vector = self
-                                .snake
+
+                            if let Some(mut second_snake) = self.second_snake.clone() {
+                                second_snake.push((head.0, head.1));
+                                reversed_vector = second_snake
                                 .windows(2)
                                 .rev()
                                 .map(|x| x[1])
                                 .collect::<Vec<_>>();
-                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                                reversed_vector = reversed_vector.into_iter().rev().collect();
                             reversed_vector.push((head.0, buffer.height() - 1));
+                            }
 
                             if cli.speed_increase == Difficulty::Hard {
                                 self.snake_speed = 120;
@@ -1284,8 +1315,10 @@ impl World {
 
                             self.second_snake_directions.push(Direction::North);
                         } else {
-                            self.current_direction_first_snake = Still;
-                            reversed_vector = self.snake.clone();
+                            self.current_direction_second_snake = Still;
+                            if let Some(second_snake) = self.second_snake.clone() {
+                                reversed_vector = second_snake.clone();
+                            }
                             self.finished = true;
                             println!("Your score is {}", self.score);
 
@@ -1296,15 +1329,17 @@ impl World {
                 Direction::South => {
                     if buffer.get(head.0 as isize, head.1 as isize + 1) != None && checker == false && snake_collision_check == false
                     {
-                        self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
+
+                        if let Some(mut second_snake) = self.second_snake.clone() {
+                            second_snake.push((head.0, head.1));
+                            reversed_vector = second_snake
                             .windows(2)
                             .rev()
                             .map(|x| x[1])
                             .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0, head.1 + 1));
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0, head.1 + 1));
+                        }
 
                         self.food_generator(&buffer, cli);
                         self.score += 10;
@@ -1313,15 +1348,16 @@ impl World {
                         self.second_snake_directions.push(Direction::South);
                     } else {
                         if cli.ghost_mode == true && checker == false && snake_collision_check == false {
-                            self.snake.push((head.0, head.1));
-                            reversed_vector = self
-                                .snake
+                            if let Some(mut second_snake) = self.second_snake.clone() {
+                                second_snake.push((head.0, head.1));
+                                reversed_vector = second_snake
                                 .windows(2)
                                 .rev()
                                 .map(|x| x[1])
                                 .collect::<Vec<_>>();
-                            reversed_vector = reversed_vector.into_iter().rev().collect();
-                            reversed_vector.push((head.0, 0));
+                                reversed_vector = reversed_vector.into_iter().rev().collect();
+                                reversed_vector.push((head.0, 0));
+                            }
 
                             if cli.speed_increase == Difficulty::Hard {
                                 self.snake_speed = 120;
@@ -1334,8 +1370,10 @@ impl World {
 
                             self.second_snake_directions.push(Direction::South);
                         } else {
-                            self.current_direction_first_snake = Still;
-                            reversed_vector = self.snake.clone();
+                            self.current_direction_second_snake = Still;
+                            if let Some(second_snake) = self.second_snake.clone() {
+                                reversed_vector = second_snake.clone();
+                            }
                             self.finished = true;
                             println!("Your score is {}", self.score);
 
@@ -1346,15 +1384,16 @@ impl World {
                 Direction::East => {
                     if buffer.get(head.0 as isize + 1, head.1 as isize) != None && checker == false && snake_collision_check == false
                     {
-                        self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
+                        if let Some(mut second_snake) = self.second_snake.clone() {
+                            second_snake.push((head.0, head.1));
+                            reversed_vector = second_snake
                             .windows(2)
                             .rev()
                             .map(|x| x[1])
                             .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0 + 1, head.1));
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0 + 1, head.1));
+                        }
 
                         self.food_generator(&buffer, cli);
                         self.score += 10;
@@ -1363,15 +1402,16 @@ impl World {
                         self.second_snake_directions.push(Direction::East);
                     } else {
                         if cli.ghost_mode == true && checker == false && snake_collision_check == false {
-                            self.snake.push((head.0, head.1));
-                            reversed_vector = self
-                                .snake
+                            if let Some(mut second_snake) = self.second_snake.clone() {
+                                second_snake.push((head.0, head.1));
+                                reversed_vector = second_snake
                                 .windows(2)
                                 .rev()
                                 .map(|x| x[1])
                                 .collect::<Vec<_>>();
-                            reversed_vector = reversed_vector.into_iter().rev().collect();
-                            reversed_vector.push((0, head.1));
+                                reversed_vector = reversed_vector.into_iter().rev().collect();
+                                reversed_vector.push((0, head.1));
+                            }
 
                             if cli.speed_increase == Difficulty::Hard {
                                 self.snake_speed = 120;
@@ -1384,8 +1424,10 @@ impl World {
 
                             self.second_snake_directions.push(Direction::East);
                         } else {
-                            self.current_direction_first_snake = Still;
-                            reversed_vector = self.snake.clone();
+                            self.current_direction_second_snake = Still;
+                            if let Some(second_snake) = self.second_snake.clone() {
+                                reversed_vector = second_snake.clone();
+                            }
                             self.finished = true;
                             println!("Your score is {}", self.score);
 
@@ -1396,15 +1438,16 @@ impl World {
                 Direction::West => {
                     if buffer.get(head.0 as isize - 1, head.1 as isize) != None && checker == false && snake_collision_check == false
                     {
-                        self.snake.push((head.0, head.1));
-                        reversed_vector = self
-                            .snake
+                        if let Some(mut second_snake) = self.second_snake.clone() {
+                            second_snake.push((head.0, head.1));
+                            reversed_vector = second_snake
                             .windows(2)
                             .rev()
                             .map(|x| x[1])
                             .collect::<Vec<_>>();
-                        reversed_vector = reversed_vector.into_iter().rev().collect();
-                        reversed_vector.push((head.0 - 1, head.1));
+                            reversed_vector = reversed_vector.into_iter().rev().collect();
+                            reversed_vector.push((head.0 - 1, head.1));
+                        }
 
                         self.food_generator(&buffer, cli);
                         self.score += 10;
@@ -1413,15 +1456,16 @@ impl World {
                         self.second_snake_directions.push(Direction::West);
                     } else {
                         if cli.ghost_mode == true && checker == false && snake_collision_check == false {
-                            self.snake.push((head.0, head.1));
-                            reversed_vector = self
-                                .snake
+                            if let Some(mut second_snake) = self.second_snake.clone() {
+                                second_snake.push((head.0, head.1));
+                                reversed_vector = second_snake
                                 .windows(2)
                                 .rev()
                                 .map(|x| x[1])
                                 .collect::<Vec<_>>();
-                            reversed_vector = reversed_vector.into_iter().rev().collect();
-                            reversed_vector.push((buffer.width() - 1, head.1));
+                                reversed_vector = reversed_vector.into_iter().rev().collect();
+                                reversed_vector.push((buffer.width() - 1, head.1));
+                            }
 
                             if cli.speed_increase == Difficulty::Hard {
                                 self.snake_speed = 120;
@@ -1434,8 +1478,10 @@ impl World {
 
                             self.second_snake_directions.push(Direction::West);
                         } else {
-                            self.current_direction_first_snake = Still;
-                            reversed_vector = self.snake.clone();
+                            self.current_direction_second_snake = Still;
+                            if let Some(second_snake) = self.second_snake.clone() {
+                                reversed_vector = second_snake.clone();
+                            }
                             self.finished = true;
                             println!("Your score is {}", self.score);
 
@@ -1444,7 +1490,9 @@ impl World {
                     }
                 }
                 Direction::Still => {
-                    reversed_vector = self.snake.clone();
+                    if let Some(second_snake) = self.second_snake.clone() {
+                        reversed_vector = second_snake.clone();
+                    }
                     self.second_snake_directions.push(Direction::Still);
                 }
             }
@@ -1453,7 +1501,7 @@ impl World {
             reversed_second_snake.push(reversed_vector[0].clone());
             }
             if let Some(mut second_snake_body) = self.second_snake.clone() {
-                second_snake_body = reversed_vector;
+                self.second_snake = Some(reversed_vector);
             }
         }
     }
@@ -1690,7 +1738,6 @@ impl World {
                         reversed_vector = reversed_vector.into_iter().rev().collect();
                         reversed_vector.push((head.0, head.1 - 1));
                     }
-                    println!("{:#?}", reversed_vector);
 
                     self.second_snake_directions.push(Direction::North);
                 } else {
