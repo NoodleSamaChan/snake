@@ -259,7 +259,7 @@ pub struct World {
     space_count: usize,
     snake_speed: usize,
     score: usize,
-    bad_berries: (usize, usize),
+    bad_berries: usize,
     bad_berries_position: Option<(usize, usize)>,
     reversed_snake: Vec<(usize, usize)>,
     time_cycle: TimeCycle,
@@ -282,7 +282,7 @@ impl World {
         space_count: usize,
         snake_speed: usize,
         score: usize,
-        bad_berries: (usize, usize),
+        bad_berries: usize,
         bad_berries_position: Option<(usize, usize)>,
         reversed_snake: Vec<(usize, usize)>,
         time_cycle: TimeCycle,
@@ -497,7 +497,6 @@ impl World {
                         self.food_generator(&buffer, cli);
 
                         self.score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.first_snake_directions.push(Direction::North);
                         if cli.two_players_mode == true {
@@ -522,7 +521,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.first_snake_directions.push(Direction::North);
                             if cli.two_players_mode == true {
@@ -565,7 +563,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.first_snake_directions.push(Direction::South);
                         if cli.two_players_mode == true {
@@ -590,7 +587,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.first_snake_directions.push(Direction::South);
                             if cli.two_players_mode == true {
@@ -633,7 +629,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.first_snake_directions.push(Direction::East);
                             if cli.two_players_mode == true {
@@ -658,7 +653,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.score += 10;
-                            self.bad_berries.1 += 1;
                             self.first_snake_directions.push(Direction::East);
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::East);
@@ -700,7 +694,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.first_snake_directions.push(Direction::West);
                             if cli.two_players_mode == true {
@@ -725,7 +718,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.first_snake_directions.push(Direction::West);
                             if cli.two_players_mode == true {
@@ -761,11 +753,11 @@ impl World {
         } else if (self.bad_berries_position != None)
             && (self.snake[self.snake.len() - 1] == self.bad_berries_position.unwrap())
         {
-            self.bad_berries.0 += 1;
+            self.bad_berries += 1;
 
-            if self.bad_berries.0 % 2 != 0 {
+            if self.bad_berries % 2 != 0 {
                 self.snake_speed = self.snake_speed / 3;
-            } else if (self.bad_berries.0 > 1) && (self.bad_berries.0 % 2 == 0) {
+            } else if (self.bad_berries > 1) && (self.bad_berries % 2 == 0) {
                 self.snake_speed = self.snake_speed * 3;
             }
 
@@ -785,7 +777,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.first_snake_directions.push(Direction::North);
                             if cli.two_players_mode == true {
@@ -810,7 +801,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.first_snake_directions.push(Direction::North);
                             if cli.two_players_mode == true {
@@ -849,7 +839,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.first_snake_directions.push(Direction::South);
                         if cli.two_players_mode == true {
@@ -874,7 +863,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.first_snake_directions.push(Direction::South);
                             if cli.two_players_mode == true {
@@ -913,7 +901,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.first_snake_directions.push(Direction::East);
                         if cli.two_players_mode == true {
@@ -938,7 +925,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.first_snake_directions.push(Direction::East);
                             if cli.two_players_mode == true {
@@ -977,7 +963,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.first_snake_directions.push(Direction::West);
                         if cli.two_players_mode == true {
@@ -1002,7 +987,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.first_snake_directions.push(Direction::West);
                             if cli.two_players_mode == true {
@@ -1079,7 +1063,6 @@ impl World {
                         self.food_generator(&buffer, cli);
 
                         self.second_score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.second_snake_directions.push(Direction::North);
                     } else {
@@ -1102,7 +1085,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.second_score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.second_snake_directions.push(Direction::North);
                         } else {
@@ -1137,7 +1119,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.second_score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.second_snake_directions.push(Direction::South);
                     } else {
@@ -1160,7 +1141,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.second_score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.second_snake_directions.push(Direction::South);
                         } else {
@@ -1195,7 +1175,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.second_score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.second_snake_directions.push(Direction::East);
                     } else {
@@ -1218,7 +1197,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.second_score += 10;
-                            self.bad_berries.1 += 1;
                             self.second_snake_directions.push(Direction::East);
                         } else {
                             self.current_direction_second_snake = Still;
@@ -1252,7 +1230,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.second_score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.second_snake_directions.push(Direction::West);
                     } else {
@@ -1275,7 +1252,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.second_score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.second_snake_directions.push(Direction::West);
                         } else {
@@ -1301,11 +1277,11 @@ impl World {
         } else if (self.bad_berries_position != None)
             && food_check == self.bad_berries_position.unwrap()
         {
-            self.bad_berries.0 += 1;
+            self.bad_berries += 1;
 
-            if self.bad_berries.0 % 2 != 0 {
+            if self.bad_berries % 2 != 0 {
                 self.snake_speed = self.snake_speed / 3;
-            } else if (self.bad_berries.0 > 1) && (self.bad_berries.0 % 2 == 0) {
+            } else if (self.bad_berries > 1) && (self.bad_berries % 2 == 0) {
                 self.snake_speed = self.snake_speed * 3;
             }
 
@@ -1326,7 +1302,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.second_score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.second_snake_directions.push(Direction::North);
                     } else {
@@ -1350,7 +1325,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.second_score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.second_snake_directions.push(Direction::North);
                         } else {
@@ -1382,7 +1356,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.second_score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.second_snake_directions.push(Direction::South);
                     } else {
@@ -1405,7 +1378,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.second_score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.second_snake_directions.push(Direction::South);
                         } else {
@@ -1436,7 +1408,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.second_score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.second_snake_directions.push(Direction::East);
                     } else {
@@ -1459,7 +1430,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.second_score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.second_snake_directions.push(Direction::East);
                         } else {
@@ -1490,7 +1460,6 @@ impl World {
 
                         self.food_generator(&buffer, cli);
                         self.second_score += 10;
-                        self.bad_berries.1 += 1;
 
                         self.second_snake_directions.push(Direction::West);
                     } else {
@@ -1513,7 +1482,6 @@ impl World {
                             self.food_generator(&buffer, cli);
 
                             self.second_score += 10;
-                            self.bad_berries.1 += 1;
 
                             self.second_snake_directions.push(Direction::West);
                         } else {
@@ -2045,7 +2013,7 @@ fn main() -> std::io::Result<()> {
         0,
         cli.snake_speed,
         0,
-        (0, 0),
+        0,
         None,
         Vec::new(),
         TimeCycle::Forward,
@@ -2118,7 +2086,7 @@ mod test {
             0,
             100,
             0,
-            (0, 0),
+            0,
             None,
             Vec::new(),
             TimeCycle::Forward,
@@ -2276,7 +2244,7 @@ mod test {
             0,
             100,
             0,
-            (0, 0),
+            0,
             None,
             Vec::new(),
             TimeCycle::Forward,
@@ -2363,7 +2331,7 @@ mod test {
             0,
             100,
             0,
-            (0, 0),
+            0,
             None,
             Vec::new(),
             TimeCycle::Forward,
@@ -2451,7 +2419,7 @@ mod test {
             0,
             100,
             0,
-            (0, 0),
+            0,
             None,
             Vec::new(),
             TimeCycle::Forward,
@@ -2569,7 +2537,7 @@ mod test {
             0,
             100,
             0,
-            (0, 0),
+            0,
             None,
             Vec::new(),
             TimeCycle::Forward,
@@ -2797,7 +2765,7 @@ mod test {
             0,
             100,
             0,
-            (0, 0),
+            0,
             None,
             Vec::new(),
             TimeCycle::Backward,
