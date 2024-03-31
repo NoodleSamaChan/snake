@@ -467,7 +467,7 @@ impl World {
     }
 
     pub fn snake_update(&mut self, buffer: &WindowBuffer, cli: &Cli) {
-        let mut snake_collision_check = snakes_collision_checker(&self, cli);
+        let snake_collision_check = snakes_collision_checker(&self, cli);
         let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
 
         let head = self.snake[self.snake.len() - 1];
@@ -1539,14 +1539,14 @@ impl World {
             if let Some(mut reversed_second_snake) = self.reversed_second_snake.clone() {
             reversed_second_snake.push(reversed_vector[0].clone());
             }
-            if let Some(mut second_snake_body) = self.second_snake.clone() {
+            if let Some(mut _second_snake_body) = self.second_snake.clone() {
                 self.second_snake = Some(reversed_vector);
             }
         }
     }
 
     pub fn direction(&mut self, buffer: &WindowBuffer, cli: &Cli) {
-        let mut snake_collision_check = snakes_collision_checker(&self, cli);
+        let snake_collision_check = snakes_collision_checker(&self, cli);
         let mut reversed_vector: Vec<(usize, usize)> = Vec::new();
         let head = self.snake[self.snake.len() - 1];
         let mut snake_body = self.snake.clone();
@@ -1970,7 +1970,7 @@ impl World {
         if let Some(mut reversed_second_snake) = self.reversed_second_snake.clone() {
             reversed_second_snake.push(reversed_vector[0].clone());
         }
-        if let Some(mut second_snake_body) = self.second_snake.clone() {
+        if let Some(_second_snake_body) = self.second_snake.clone() {
             self.second_snake = Some(reversed_vector);
         }
     }
