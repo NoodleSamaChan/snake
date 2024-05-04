@@ -1,6 +1,6 @@
 use crate::Direction::Still;
 use clap::{Parser, ValueEnum};
-use minifb::{Key, KeyRepeat, Window, WindowOptions};
+use graphic::{minifb::Minifb, Graphic};
 use rand::Rng;
 use std::fmt;
 use std::fs::File;
@@ -355,17 +355,17 @@ impl World {
         }
     }
 
-    pub fn handle_user_input(
+    pub fn handle_user_input <W: Graphic>(
         &mut self,
-        window: &Window,
+        window: &W,
         cli: &Cli,
         buffer: &WindowBuffer,
     ) -> std::io::Result<()> {
-        if window.is_key_pressed(Key::Q, KeyRepeat::No) {
+        if window.is_key_pressed(graphic::Key::Quit) {
             self.reset();
         }
 
-        if window.is_key_pressed(Key::S, KeyRepeat::No) {
+        if window.is_key_pressed(graphic::Key::Save) {
             let mut save_file = File::create("save_file")?;
 
             if cli.file_path != None {
@@ -386,35 +386,35 @@ impl World {
             save_file.flush()?;
         }
 
-        if window.is_key_pressed(Key::Up, KeyRepeat::Yes) {
+        if window.is_key_pressed(graphic::Key::Up,) {
             self.time_cycle = TimeCycle::Forward;
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::South {
                 self.current_direction_first_snake = Direction::North;
             }
         }
 
-        if window.is_key_pressed(Key::Down, KeyRepeat::Yes) {
+        if window.is_key_pressed(graphic::Key::Down) {
             self.time_cycle = TimeCycle::Forward;
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::North {
                 self.current_direction_first_snake = Direction::South;
             }
         }
 
-        if window.is_key_pressed(Key::Left, KeyRepeat::Yes) {
+        if window.is_key_pressed(graphic::Key::Left) {
             self.time_cycle = TimeCycle::Forward;
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::East {
                 self.current_direction_first_snake = Direction::West;
             }
         }
 
-        if window.is_key_pressed(Key::Right, KeyRepeat::Yes) {
+        if window.is_key_pressed(graphic::Key::Right) {
             self.time_cycle = TimeCycle::Forward;
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::West {
                 self.current_direction_first_snake = Direction::East;
             }
         }
 
-        if window.is_key_pressed(Key::U, KeyRepeat::Yes) {
+        if window.is_key_pressed(graphic::Key::UpPlayer2) {
             if cli.two_players_mode == true {
                 if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::South {
                     self.current_direction_second_snake = Direction::North;
@@ -422,7 +422,7 @@ impl World {
             }
         }
 
-        if window.is_key_pressed(Key::N, KeyRepeat::Yes) {
+        if window.is_key_pressed(graphic::Key::DownPlayer2) {
             if cli.two_players_mode == true {
                 if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::North {
                     self.current_direction_second_snake = Direction::South;
@@ -430,7 +430,7 @@ impl World {
             }
         }
 
-        if window.is_key_pressed(Key::H, KeyRepeat::Yes) {
+        if window.is_key_pressed(graphic::Key::LeftPlayer2) {
             if cli.two_players_mode == true {
                 if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::East {
                     self.current_direction_second_snake = Direction::West;
@@ -438,7 +438,7 @@ impl World {
             }
         }
 
-        if window.is_key_pressed(Key::J, KeyRepeat::Yes) {
+        if window.is_key_pressed(graphic::Key::RightPlayer2) {
             if cli.two_players_mode == true {
                 if self.second_snake_directions[self.second_snake_directions.len() - 1] != Direction::West {
                     self.current_direction_second_snake = Direction::East;
@@ -449,17 +449,17 @@ impl World {
         let small_break = Duration::from_millis(0);
         if self.small_break_timer.elapsed() >= small_break {
             window.get_keys_released().iter().for_each(|key| match key {
-                Key::Space => self.space_count += 1,
+                graphic::Key::Space => self.space_count += 1,
                 _ => (),
             });
             self.small_break_timer = Instant::now();
         }
 
-        if window.is_key_pressed(Key::R, KeyRepeat::Yes) {
+        if window.is_key_pressed(graphic::Key::Backward) {
             self.time_cycle = TimeCycle::Backward;
         }
 
-        if window.is_key_pressed(Key::F, KeyRepeat::Yes) {
+        if window.is_key_pressed(graphic::Key::Forward) {
             self.time_cycle = TimeCycle::Forward;
         }
 
@@ -1988,20 +1988,7 @@ fn main() -> std::io::Result<()> {
         }*/
     }
 
-    let mut window = Window::new(
-        "Test - ESC to exit",
-        buffer.width(),
-        buffer.height(),
-        WindowOptions {
-            scale: minifb::Scale::X16,
-            ..WindowOptions::default()
-        },
-    )
-    .unwrap_or_else(|e| {
-        panic!("{}", e);
-    });
-
-    window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
+    let mut window = Minifb::new("Snake - ESC to exit", buffer.width(), buffer.height());
 
     let mut game_elements: World = World::new(
         Direction::Still,
@@ -2028,7 +2015,7 @@ fn main() -> std::io::Result<()> {
 
     let mut instant = Instant::now();
 
-    while window.is_open() && !window.is_key_down(Key::Escape) {
+    while window.is_open() && !window.is_key_down(graphic::Key::Escape) {
         let _ = game_elements.handle_user_input(&window, &cli, &buffer);
         if game_elements.time_cycle == TimeCycle::Forward {
             if game_elements.finished == false {
@@ -2053,8 +2040,7 @@ fn main() -> std::io::Result<()> {
             game_elements.time_cycle = TimeCycle::Pause;
         }
         window
-            .update_with_buffer(&buffer.buffer(), cli.width, cli.height)
-            .unwrap();
+            .update_with_buffer(&buffer)
     }
 
     Ok(())
