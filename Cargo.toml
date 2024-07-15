@@ -19,3 +19,6 @@ default = ["graphic/minifb", "dep:minifb"]
 [dev-dependencies]
 proptest = "1.4.0"
 insta = "1.36.1"
+
+[lib]
+name = "snake"
