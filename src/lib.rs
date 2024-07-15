@@ -39,13 +39,13 @@ pub enum TimeCycle {
 pub struct Cli {
     /// Optional name to operate on
     #[arg(long, default_value_t = 80)]
-    width: usize,
+    pub width: usize,
     #[arg(long, default_value_t = 50)]
-    height: usize,
+    pub height: usize,
     #[arg(long, default_value_t = 3)]
     pub snake_size_start: usize,
     #[arg(long)]
-    file_path: Option<String>,
+    pub file_path: Option<String>,
     #[arg(long, default_value_t = 120)]
     pub snake_speed: usize,
     #[arg(long, default_value_t = Difficulty::Medium)]
