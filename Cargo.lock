@@ -311,7 +311,7 @@ dependencies = [
 [[package]]
 name = "graphic"
 version = "0.1.0"
-source = "git+https://github.com/NoodleSamaChan/graphic.git?rev=e5039a2#e5039a251b89b3026ac9f1f6ca37f12dcb7fef6d"
+source = "git+https://github.com/NoodleSamaChan/graphic.git?rev=4cf1ea4#4cf1ea4a0517cebf6533d89465242fd95ab5c26a"
 dependencies = [
  "minifb",
  "window_rs",
@@ -976,7 +976,7 @@ checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 [[package]]
 name = "window_rs"
 version = "0.1.0"
-source = "git+https://github.com/NoodleSamaChan/window_rs#1e3c4479eeb81356393db1b5978078fe677af6bd"
+source = "git+https://github.com/NoodleSamaChan/window_rs?rev=6068419#60684199ac60c0154654b9fa7c04edf9619c58b0"
 
 [[package]]
 name = "windows-sys"

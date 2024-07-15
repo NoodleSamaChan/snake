@@ -39,23 +39,23 @@ pub enum TimeCycle {
 pub struct Cli {
     /// Optional name to operate on
     #[arg(long, default_value_t = 80)]
-    width: usize,
+    pub width: usize,
     #[arg(long, default_value_t = 50)]
-    height: usize,
+    pub height: usize,
     #[arg(long, default_value_t = 3)]
-    snake_size_start: usize,
+    pub snake_size_start: usize,
     #[arg(long)]
-    file_path: Option<String>,
+    pub file_path: Option<String>,
     #[arg(long, default_value_t = 120)]
-    snake_speed: usize,
+    pub snake_speed: usize,
     #[arg(long, default_value_t = Difficulty::Medium)]
-    speed_increase: Difficulty,
+    pub speed_increase: Difficulty,
     #[arg(long, default_value_t = false)]
-    bad_berries: bool,
+    pub bad_berries: bool,
     #[arg(long, default_value_t = false)]
-    ghost_mode: bool,
+    pub ghost_mode: bool,
     #[arg(long, default_value_t = false)]
-    two_players_mode: bool,
+    pub two_players_mode: bool,
 }
 //CLI END
 
@@ -250,24 +250,24 @@ pub enum Direction {
 
 //WORLD CREATION
 pub struct World {
-    current_direction_first_snake: Direction,
-    first_snake_directions : Vec<Direction>,
-    snake: Vec<(usize, usize)>,
-    food: (usize, usize),
-    finished: bool,
-    small_break_timer: Instant,
-    space_count: usize,
-    snake_speed: usize,
-    score: usize,
-    bad_berries: usize,
-    bad_berries_position: Option<(usize, usize)>,
-    reversed_snake: Vec<(usize, usize)>,
-    time_cycle: TimeCycle,
-    second_snake: Option<Vec<(usize, usize)>>,
-    second_snake_directions : Vec<Direction>,
-    reversed_second_snake: Option<Vec<(usize, usize)>>,
-    current_direction_second_snake: Direction,
-    second_score: usize,
+    pub current_direction_first_snake: Direction,
+    pub first_snake_directions : Vec<Direction>,
+    pub snake: Vec<(usize, usize)>,
+    pub food: (usize, usize),
+    pub finished: bool,
+    pub small_break_timer: Instant,
+    pub space_count: usize,
+    pub snake_speed: usize,
+    pub score: usize,
+    pub bad_berries: usize,
+    pub bad_berries_position: Option<(usize, usize)>,
+    pub reversed_snake: Vec<(usize, usize)>,
+    pub time_cycle: TimeCycle,
+    pub second_snake: Option<Vec<(usize, usize)>>,
+    pub second_snake_directions : Vec<Direction>,
+    pub reversed_second_snake: Option<Vec<(usize, usize)>>,
+    pub current_direction_second_snake: Direction,
+    pub second_score: usize,
 
 }
 
