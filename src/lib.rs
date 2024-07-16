@@ -49,7 +49,7 @@ pub struct Cli {
     #[arg(long, default_value_t = 120)]
     pub snake_speed: usize,
     #[arg(long, default_value_t = Difficulty::Medium)]
-    speed_increase: Difficulty,
+    pub speed_increase: Difficulty,
     #[arg(long, default_value_t = false)]
     pub bad_berries: bool,
     #[arg(long, default_value_t = false)]
