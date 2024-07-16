@@ -1,8 +1,14 @@
-use std::{fs::File, io::Read, time::{Duration, Instant}};
+use std::{
+    fs::File,
+    io::Read,
+    time::{Duration, Instant},
+};
 
 use clap::Parser;
 use graphic::{minifb::Minifb, Graphic};
-use snake::{display, go_display, return_in_time, snake_generator, Cli, Direction, TimeCycle, World};
+use snake::{
+    display, go_display, return_in_time, snake_generator, Cli, Direction, TimeCycle, World,
+};
 use window_rs::WindowBuffer;
 
 fn main() -> std::io::Result<()> {
@@ -67,7 +73,11 @@ fn main() -> std::io::Result<()> {
         vec![Direction::Still],
         Some(Vec::new()),
         Direction::Still,
-        0, 
+        0,
+        0x0033CCFF,
+        0x00CC33FF,
+        0x0000FF00,
+        0x00FF0000,
     );
     game_elements.food_generator(&buffer, &cli);
     snake_generator(&mut game_elements, &buffer, &cli);
@@ -98,8 +108,7 @@ fn main() -> std::io::Result<()> {
             display(&game_elements, &mut buffer, &cli);
             game_elements.time_cycle = TimeCycle::Pause;
         }
-        window
-            .update_with_buffer(&buffer)
+        window.update_with_buffer(&buffer)
     }
 
     Ok(())
