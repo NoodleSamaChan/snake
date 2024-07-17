@@ -85,6 +85,7 @@ fn main() -> std::io::Result<()> {
     let mut instant = Instant::now();
 
     while window.is_open() && !window.is_key_down(graphic::Key::Escape) {
+        println!("{:#?}", game_elements.second_snake_directions);
         let _ = game_elements.handle_user_input(&window, &cli, &buffer);
         if game_elements.time_cycle == TimeCycle::Forward {
             if game_elements.finished == false {

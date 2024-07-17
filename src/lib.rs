@@ -241,7 +241,7 @@ pub fn return_in_time(world: &mut World, cli: &Cli) {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Direction {
     Still,
     North,
@@ -421,7 +421,11 @@ impl World {
             self.time_cycle = TimeCycle::Forward;
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::East
             {
-                self.current_direction_first_snake = Direction::West;
+                let mut vec_to_check:Vec<Direction> = self.first_snake_directions.clone();
+                vec_to_check.dedup();
+                if vec_to_check.len() != 1 {
+                    self.current_direction_first_snake = Direction::West;
+                }
             }
         }
 
@@ -468,7 +472,11 @@ impl World {
                 if self.second_snake_directions[self.second_snake_directions.len() - 1]
                     != Direction::West
                 {
-                    self.current_direction_second_snake = Direction::East;
+                    let mut vec_to_check_second:Vec<Direction> = self.second_snake_directions.clone();
+                    vec_to_check_second.dedup();
+                    if vec_to_check_second.len() != 1 {
+                        self.current_direction_first_snake = Direction::East;
+                    }
                 }
             }
         }
