@@ -78,22 +78,20 @@ pub fn snake_generator(world: &mut World, buffer: &WindowBuffer, cli: &Cli) {
     let x_middle_point = buffer.width() / 2;
     let y_middle_point = buffer.height() / 2;
 
-    for i in 1..cli.snake_size_start {
+    for i in 1..cli.snake_size_start + 1 {
         world.snake.push((x_middle_point - i, y_middle_point));
     }
 
     if cli.two_players_mode == true {
-        for i in 1..cli.snake_size_start {
+        for i in 1..cli.snake_size_start + 1 {
             world
-            .second_snake
-            .as_mut()
-            .unwrap()
-            .push((x_middle_point - i, y_middle_point - 2));
-
+                .second_snake
+                .as_mut()
+                .unwrap()
+                .push((x_middle_point - i, y_middle_point - 2));
         }
     }
     world.snake.reverse();
-
 }
 
 pub fn snakes_collision_checker(world: &World, cli: &Cli) -> bool {
@@ -141,7 +139,7 @@ pub fn display(world: &World, buffer: &mut WindowBuffer, cli: &Cli) {
         .snake
         .iter()
         .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = world.first_snake_colour);
-    buffer[world.snake[world.snake.len() - 1]] = world.first_snake_colour;
+    buffer[world.snake[world.snake.len() - 1]] = world.first_snake_head_colour;
 
     if cli.two_players_mode == true && world.second_snake != None {
         if let Some(second_snake) = &world.second_snake {
@@ -151,7 +149,7 @@ pub fn display(world: &World, buffer: &mut WindowBuffer, cli: &Cli) {
                 .unwrap()
                 .iter()
                 .for_each(|(x, y)| buffer[(x.clone(), y.clone())] = world.second_snake_colour);
-            buffer[second_snake[second_snake.len() - 1]] = world.second_snake_colour;
+            buffer[second_snake[second_snake.len() - 1]] = world.second_snake_head_colour;
         }
     }
 
@@ -266,7 +264,9 @@ pub struct World {
     pub current_direction_second_snake: Direction,
     pub second_score: usize,
     pub first_snake_colour: u32,
+    pub first_snake_head_colour: u32,
     pub second_snake_colour: u32,
+    pub second_snake_head_colour: u32,
     pub food_colour: u32,
     pub bad_berries_colour: u32,
 }
@@ -292,7 +292,9 @@ impl World {
         current_direction_second_snake: Direction,
         second_score: usize,
         first_snake_colour: u32,
+        first_snake_head_colour: u32,
         second_snake_colour: u32,
+        second_snake_head_colour: u32,
         food_colour: u32,
         bad_berries_colour: u32,
     ) -> Self {
@@ -316,7 +318,9 @@ impl World {
             current_direction_second_snake,
             second_score,
             first_snake_colour,
+            first_snake_head_colour,
             second_snake_colour,
+            second_snake_head_colour,
             food_colour,
             bad_berries_colour,
         }
@@ -532,9 +536,10 @@ impl World {
                         self.score += 10;
 
                         self.first_snake_directions.push(Direction::North);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::North);
-                        }
+                        } */
                     } else {
                         if cli.ghost_mode == true
                             && checker == false
@@ -559,9 +564,10 @@ impl World {
                             self.score += 10;
 
                             self.first_snake_directions.push(Direction::North);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::North);
-                            }
+                            } */
                         } else {
                             self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
@@ -576,9 +582,10 @@ impl World {
                             }
 
                             self.first_snake_directions.push(Direction::Still);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::Still);
-                            }
+                            } */
                         }
                     }
                 }
@@ -605,9 +612,10 @@ impl World {
                         self.score += 10;
 
                         self.first_snake_directions.push(Direction::South);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::South);
-                        }
+                        }  */
                     } else {
                         if cli.ghost_mode == true
                             && checker == false
@@ -632,9 +640,10 @@ impl World {
                             self.score += 10;
 
                             self.first_snake_directions.push(Direction::South);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::South);
-                            }
+                            } */
                         } else {
                             self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
@@ -649,9 +658,10 @@ impl World {
                             }
 
                             self.first_snake_directions.push(Direction::Still);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::Still);
-                            }
+                            }  */
                         }
                     }
                 }
@@ -678,9 +688,10 @@ impl World {
                         self.score += 10;
 
                         self.first_snake_directions.push(Direction::East);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::East);
-                        }
+                        } */
                     } else {
                         if cli.ghost_mode == true
                             && checker == false
@@ -704,9 +715,10 @@ impl World {
 
                             self.score += 10;
                             self.first_snake_directions.push(Direction::East);
+                            /* 
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::East);
-                            }
+                            } */
                         } else {
                             self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
@@ -721,9 +733,10 @@ impl World {
                             }
 
                             self.first_snake_directions.push(Direction::Still);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::Still);
-                            }
+                            }  */
                         }
                     }
                 }
@@ -750,9 +763,10 @@ impl World {
                         self.score += 10;
 
                         self.first_snake_directions.push(Direction::West);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::West);
-                        }
+                        }  */
                     } else {
                         if cli.ghost_mode == true
                             && checker == false
@@ -777,9 +791,10 @@ impl World {
                             self.score += 10;
 
                             self.first_snake_directions.push(Direction::West);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::West);
-                            }
+                            } */
                         } else {
                             self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
@@ -794,18 +809,20 @@ impl World {
                             }
 
                             self.first_snake_directions.push(Direction::Still);
+                            /* 
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::Still);
-                            }
+                            }*/
                         }
                     }
                 }
                 Direction::Still => {
                     reversed_vector = self.snake.clone();
                     self.first_snake_directions.push(Direction::Still);
+                    /*
                     if cli.two_players_mode == true {
                         self.second_snake_directions.push(Direction::Still);
-                    }
+                    } */
                 }
             }
             self.snake = reversed_vector;
@@ -840,9 +857,10 @@ impl World {
                         self.score += 10;
 
                         self.first_snake_directions.push(Direction::North);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::North);
-                        }
+                        } */
                     } else {
                         if cli.ghost_mode == true
                             && checker == false
@@ -867,9 +885,10 @@ impl World {
                             self.score += 10;
 
                             self.first_snake_directions.push(Direction::North);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::North);
-                            }
+                            } */
                         } else {
                             self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
@@ -884,9 +903,10 @@ impl World {
                             }
 
                             self.first_snake_directions.push(Direction::Still);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::Still);
-                            }
+                            } */
                         }
                     }
                 }
@@ -909,9 +929,10 @@ impl World {
                         self.score += 10;
 
                         self.first_snake_directions.push(Direction::South);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::South);
-                        }
+                        } */
                     } else {
                         if cli.ghost_mode == true
                             && checker == false
@@ -936,9 +957,10 @@ impl World {
                             self.score += 10;
 
                             self.first_snake_directions.push(Direction::South);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::South);
-                            }
+                            } */
                         } else {
                             self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
@@ -953,9 +975,10 @@ impl World {
                             }
 
                             self.first_snake_directions.push(Direction::Still);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::Still);
-                            }
+                            } */
                         }
                     }
                 }
@@ -978,9 +1001,10 @@ impl World {
                         self.score += 10;
 
                         self.first_snake_directions.push(Direction::East);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::East);
-                        }
+                        } */
                     } else {
                         if cli.ghost_mode == true
                             && checker == false
@@ -1005,9 +1029,10 @@ impl World {
                             self.score += 10;
 
                             self.first_snake_directions.push(Direction::East);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::East);
-                            }
+                            } */
                         } else {
                             self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
@@ -1022,9 +1047,10 @@ impl World {
                             }
 
                             self.first_snake_directions.push(Direction::Still);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::Still);
-                            }
+                            } */
                         }
                     }
                 }
@@ -1047,9 +1073,10 @@ impl World {
                         self.score += 10;
 
                         self.first_snake_directions.push(Direction::West);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::West);
-                        }
+                        } */
                     } else {
                         if cli.ghost_mode == true
                             && checker == false
@@ -1074,9 +1101,10 @@ impl World {
                             self.score += 10;
 
                             self.first_snake_directions.push(Direction::West);
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::West);
-                            }
+                            } */
                         } else {
                             self.current_direction_first_snake = Still;
                             reversed_vector = self.snake.clone();
@@ -1690,9 +1718,10 @@ impl World {
                     }
 
                     self.first_snake_directions.push(Direction::North);
+                    /* 
                     if cli.two_players_mode == true {
                         self.second_snake_directions.push(Direction::North);
-                    }
+                    } */
                 } else {
                     if cli.ghost_mode == true && checker == false && snake_collision_check == false
                     {
@@ -1706,9 +1735,10 @@ impl World {
                         reversed_vector.push((head.0, buffer.height() - 1));
 
                         self.first_snake_directions.push(Direction::North);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::North);
-                        }
+                        } */
                     } else {
                         self.current_direction_first_snake = Still;
                         reversed_vector = self.snake.clone();
@@ -1747,9 +1777,10 @@ impl World {
                     }
 
                     self.first_snake_directions.push(Direction::South);
+                    /* 
                     if cli.two_players_mode == true {
                         self.second_snake_directions.push(Direction::South);
-                    }
+                    }*/
                 } else {
                     if cli.ghost_mode == true && checker == false && snake_collision_check == false
                     {
@@ -1762,9 +1793,10 @@ impl World {
                         reversed_vector = reversed_vector.into_iter().rev().collect();
                         reversed_vector.push((head.0, 0));
                         self.first_snake_directions.push(Direction::South);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::South);
-                        }
+                        } */
                     } else {
                         self.current_direction_first_snake = Still;
                         reversed_vector = self.snake.clone();
@@ -1803,9 +1835,10 @@ impl World {
                     }
 
                     self.first_snake_directions.push(Direction::East);
+                    /*
                     if cli.two_players_mode == true {
                         self.second_snake_directions.push(Direction::East);
-                    }
+                    } */
                 } else {
                     if cli.ghost_mode == true && checker == false && snake_collision_check == false
                     {
@@ -1819,9 +1852,10 @@ impl World {
                         reversed_vector.push((0, head.1));
 
                         self.first_snake_directions.push(Direction::East);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::East);
-                        }
+                        }  */
                     } else {
                         self.current_direction_first_snake = Still;
                         reversed_vector = self.snake.clone();
@@ -1860,9 +1894,10 @@ impl World {
                     }
 
                     self.first_snake_directions.push(Direction::West);
+                    /* 
                     if cli.two_players_mode == true {
                         self.second_snake_directions.push(Direction::West);
-                    }
+                    }*/
                 } else {
                     if cli.ghost_mode == true && checker == false && snake_collision_check == false
                     {
@@ -1876,9 +1911,10 @@ impl World {
                         reversed_vector.push((buffer.width() - 1, head.1));
 
                         self.first_snake_directions.push(Direction::West);
+                        /*
                         if cli.two_players_mode == true {
                             self.second_snake_directions.push(Direction::West);
-                        }
+                        }  */
                     } else {
                         self.current_direction_first_snake = Still;
                         reversed_vector = self.snake.clone();
@@ -2177,7 +2213,9 @@ mod test {
             Direction::Still,
             0,
             0x0033CCFF,
+            0x0033CCCC,
             0x00CC33FF,
+            0x00CC33CC,
             0x0000FF00,
             0x00FF0000,
         );
@@ -2339,7 +2377,9 @@ mod test {
             Direction::Still,
             0,
             0x0033CCFF,
+            0x0033CCCC,
             0x00CC33FF,
+            0x00CC33CC,
             0x0000FF00,
             0x00FF0000,
         );
@@ -2430,7 +2470,9 @@ mod test {
             Direction::Still,
             0,
             0x0033CCFF,
+            0x0033CCCC,
             0x00CC33FF,
+            0x00CC33CC,
             0x0000FF00,
             0x00FF0000,
         );
@@ -2522,7 +2564,9 @@ mod test {
             Direction::Still,
             0,
             0x0033CCFF,
+            0x0033CCCC,
             0x00CC33FF,
+            0x00CC33CC,
             0x0000FF00,
             0x00FF0000,
         );
@@ -2644,7 +2688,9 @@ mod test {
             Direction::Still,
             0,
             0x0033CCFF,
+            0x0033CCCC,
             0x00CC33FF,
+            0x00CC33CC,
             0x0000FF00,
             0x00FF0000,
         );
@@ -2876,7 +2922,9 @@ mod test {
             Direction::Still,
             0,
             0x0033CCFF,
+            0x0033CCCC,
             0x00CC33FF,
+            0x00CC33CC,
             0x0000FF00,
             0x00FF0000,
         );

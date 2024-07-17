@@ -75,7 +75,9 @@ fn main() -> std::io::Result<()> {
         Direction::Still,
         0,
         0x0033CCFF,
+        0x00CC66FF,
         0x00CC33FF,
+        0x00FFCC00,
         0x0000FF00,
         0x00FF0000,
     );
