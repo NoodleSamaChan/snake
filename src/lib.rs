@@ -476,7 +476,7 @@ impl World {
                         self.second_snake_directions.clone();
                     vec_to_check_second.dedup();
                     if vec_to_check_second.len() != 1 {
-                        self.current_direction_first_snake = Direction::East;
+                        self.current_direction_second_snake = Direction::East;
                     }
                 }
             }
