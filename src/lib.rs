@@ -78,27 +78,22 @@ pub fn snake_generator(world: &mut World, buffer: &WindowBuffer, cli: &Cli) {
     let x_middle_point = buffer.width() / 2;
     let y_middle_point = buffer.height() / 2;
 
-    world.snake.push((x_middle_point - 2, y_middle_point));
-    world.snake.push((x_middle_point - 1, y_middle_point));
-    world.snake.push((x_middle_point, y_middle_point));
+    for i in 1..cli.snake_size_start {
+        world.snake.push((x_middle_point - i, y_middle_point));
+    }
 
     if cli.two_players_mode == true {
-        world
+        for i in 1..cli.snake_size_start {
+            world
             .second_snake
             .as_mut()
             .unwrap()
-            .push((x_middle_point, y_middle_point - 2));
-        world
-            .second_snake
-            .as_mut()
-            .unwrap()
-            .push((x_middle_point - 1, y_middle_point - 2));
-        world
-            .second_snake
-            .as_mut()
-            .unwrap()
-            .push((x_middle_point - 2, y_middle_point - 2));
+            .push((x_middle_point - i, y_middle_point - 2));
+
+        }
     }
+    world.snake.reverse();
+
 }
 
 pub fn snakes_collision_checker(world: &World, cli: &Cli) -> bool {
