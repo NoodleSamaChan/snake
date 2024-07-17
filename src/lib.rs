@@ -421,7 +421,7 @@ impl World {
             self.time_cycle = TimeCycle::Forward;
             if self.first_snake_directions[self.first_snake_directions.len() - 1] != Direction::East
             {
-                let mut vec_to_check:Vec<Direction> = self.first_snake_directions.clone();
+                let mut vec_to_check: Vec<Direction> = self.first_snake_directions.clone();
                 vec_to_check.dedup();
                 if vec_to_check.len() != 1 {
                     self.current_direction_first_snake = Direction::West;
@@ -472,7 +472,8 @@ impl World {
                 if self.second_snake_directions[self.second_snake_directions.len() - 1]
                     != Direction::West
                 {
-                    let mut vec_to_check_second:Vec<Direction> = self.second_snake_directions.clone();
+                    let mut vec_to_check_second: Vec<Direction> =
+                        self.second_snake_directions.clone();
                     vec_to_check_second.dedup();
                     if vec_to_check_second.len() != 1 {
                         self.current_direction_first_snake = Direction::East;
