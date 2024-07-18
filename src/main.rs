@@ -1,13 +1,10 @@
-use std::{
-    fs::File,
-    io::Read,
-};
-use web_time::{Duration, Instant};
 use clap::Parser;
 use graphic::{minifb::Minifb, Graphic};
 use snake::{
     display, go_display, return_in_time, snake_generator, Cli, Direction, TimeCycle, World,
 };
+use std::{fs::File, io::Read};
+use web_time::{Duration, Instant};
 use window_rs::WindowBuffer;
 
 fn main() -> std::io::Result<()> {

@@ -715,7 +715,7 @@ impl World {
 
                             self.score += 10;
                             self.first_snake_directions.push(Direction::East);
-                            /* 
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::East);
                             } */
@@ -809,7 +809,7 @@ impl World {
                             }
 
                             self.first_snake_directions.push(Direction::Still);
-                            /* 
+                            /*
                             if cli.two_players_mode == true {
                                 self.second_snake_directions.push(Direction::Still);
                             }*/
@@ -1718,7 +1718,7 @@ impl World {
                     }
 
                     self.first_snake_directions.push(Direction::North);
-                    /* 
+                    /*
                     if cli.two_players_mode == true {
                         self.second_snake_directions.push(Direction::North);
                     } */
@@ -1777,7 +1777,7 @@ impl World {
                     }
 
                     self.first_snake_directions.push(Direction::South);
-                    /* 
+                    /*
                     if cli.two_players_mode == true {
                         self.second_snake_directions.push(Direction::South);
                     }*/
@@ -1894,7 +1894,7 @@ impl World {
                     }
 
                     self.first_snake_directions.push(Direction::West);
-                    /* 
+                    /*
                     if cli.two_players_mode == true {
                         self.second_snake_directions.push(Direction::West);
                     }*/
