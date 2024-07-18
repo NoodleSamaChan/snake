@@ -11,6 +11,7 @@ minifb = { version = "0.25.0", optional = true }
 rand = "0.8.5"
 window_rs = {git = "https://github.com/NoodleSamaChan/window_rs", rev = "6068419"}
 graphic = {git = "https://github.com/NoodleSamaChan/graphic.git", rev = "4cf1ea4", default-features = false}
+web-time = "1.1.0"
 
 [features]
 default = ["graphic/minifb", "dep:minifb"]

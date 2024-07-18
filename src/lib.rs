@@ -5,7 +5,7 @@ use rand::Rng;
 use std::fmt;
 use std::fs::File;
 use std::io::Write;
-use std::time::{Duration, Instant};
+use web_time::{Duration, Instant};
 use window_rs::WindowBuffer;
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug, Default)]

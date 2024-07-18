@@ -1,9 +1,8 @@
 use std::{
     fs::File,
     io::Read,
-    time::{Duration, Instant},
 };
-
+use web_time::{Duration, Instant};
 use clap::Parser;
 use graphic::{minifb::Minifb, Graphic};
 use snake::{
