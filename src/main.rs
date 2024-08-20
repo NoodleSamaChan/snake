@@ -70,12 +70,12 @@ fn main() -> std::io::Result<()> {
         Some(Vec::new()),
         Direction::Still,
         0,
-        0x0033CCFF,
-        0x00CC66FF,
-        0x00CC33FF,
-        0x00FFCC00,
-        0x0000FF00,
-        0x00FF0000,
+        0xFF33CCFF,
+        0xFFCC66FF,
+        0xFFCC33FF,
+        0xFFFFCC00,
+        0xFF00FF00,
+        0xFFFF0000,
     );
     game_elements.food_generator(&buffer, &cli);
     snake_generator(&mut game_elements, &buffer, &cli);
